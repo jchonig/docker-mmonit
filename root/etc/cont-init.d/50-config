@@ -1,0 +1,91 @@
+#!/usr/bin/with-contenv bash
+
+print_vars () {
+    if [ -n "${1}" ]; then
+	title=" ${1}"
+    else
+	title=""
+    fi
+    echo "Environment${title}:"
+    echo "    PUID=${PUID}"
+    echo "    PGID=${PGID}"
+    echo "    TZ=${TZ}"
+    for var in "${!MMONIT_@}"; do
+	printf '    %s=%s\n' "$var" "${!var}"
+    done    
+}
+
+print_vars 
+
+# load env file if it exists
+if [ -f "/config/env" ]; then
+  source /config/env
+  print_vars "After sourcing /config/env"
+fi
+
+# make our config dirs
+for dir in conf db docroot logs; do
+    mkdir -p /config/${dir}
+done
+
+# Create log files    
+touch /config/logs/{error,mmonit}.log
+
+# Overlay DB directory
+cp -rpn /opt/mmonit-${MMONIT_VERSION}/db/* /config/db/
+
+# Overlay Conf directory
+cp -rpn /opt/mmonit-${MMONIT_VERSION}/conf/* /config/conf/
+
+# Overlay docroot directory
+cp -rpn /opt/mmonit-${MMONIT_VERSION}/docroot/* /config/docroot/
+
+# Fix syntax errors in server.xml
+xmlstarlet validate /config/conf/server.xml > /dev/null
+if [ $? -ne 0 ]; then
+    echo "Escaping & in XML"
+    sed -i -E -e 's/&[^#]/\&#38;/g' /config/conf/server.xml
+    xml_fixup=yes
+else
+    xml_fixup=no
+fi
+
+# Update license owner
+if [ -n "${MMONIT_LICENSE_OWNER}" ]; then
+    echo Setting M/Monit license owner
+    xmlstarlet edit --inplace -u "/Server/License/@owner" -v "${MMONIT_LICENSE_OWNER}" /config/conf/server.xml
+fi
+
+# Update License value
+if [ -n "${MMONIT_LICENSE_KEY}" ]; then
+    echo Setting M/Monit license key
+    xmlstarlet edit --inplace -u "/Server/License" -v "${MMONIT_LICENSE_KEY}" /config/conf/server.xml
+fi
+
+# Update DM connector
+if [ -n "${MMONIT_DATABASE_URL}" ]; then
+    echo Setting database URL
+    xmlstarlet edit --inplace -u "/Server/Service/Engine/Realm/@url" -v "${MMONIT_DATABASE_URL}" /config/conf/server.xml
+fi
+
+# Set nprocessors based on CPU count https://mmonit.com/wiki/MMonit/FAQ#scaling
+nprocessors=$(nproc --all)
+test ${nprocessors} -lt 10 && nprocessors=10
+xmlstarlet edit --inplace -u "/Server/Service/Connector/@processors" -v ${nprocessors} /config/conf/server.xml
+
+# Restore the fixups
+if [ "${xml_fixup}" = "yes" ]; then
+    echo "Restoring escaped & in XML"
+    sed -i -E -e 's/&#38;/\&/g' /config/conf/server.xml
+fi
+
+# XMLstarlet likes to use &amp; put it back
+sed -i -E -e 's/&amp;/\&#38;/g' /config/conf/server.xml
+
+
+# XXX - Cron, logrotate
+
+# permissions
+chown -R abc:abc \
+	/config \
+	/opt/mmonit-${MMONIT_VERSION}

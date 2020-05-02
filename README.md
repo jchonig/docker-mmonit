@@ -51,8 +51,6 @@ services:
 | ------ | --------                                         |
 | 8080   | Used for web access and for clients to report in |
 
-XXX - Security
-
 ## Environment Variables (-e)
 
 | Env                  | Function                                |
@@ -63,7 +61,7 @@ XXX - Security
 | MMONIT_VERSION       | The version of M\/Monit to build        |
 | MMONIT_LICENSE_OWNER | Owner name from M\/Monit license        |
 | MMONIT_LICENSE       |                                         |
-| MMONIT_DATABSE_URL   | URL to access the M/\\/Monit databse    |
+| MMONIT_DATABSE_URL   | URL to access the M\/Monit databse      |
 | MMONIT_LIMIT_FD      | Override the default of 4096            |
 
 ## Volume Mappings (-v)
@@ -82,9 +80,9 @@ XXX  * If it does not exist, `config/monit.d/http` is used created to
     specify the port Monit listens on.
 
 ## TODO
-
   * [ ] Document configuration
   * [ ] Document security
+  * [ ] DB other than sqlite?
   
 
 

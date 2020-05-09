@@ -1,9 +1,11 @@
-#!/bin/bash -x
+#!/bin/bash
 
 VERSION=$(cat VERSION)
 
 if [ ${DOCKER_TAG} == "latest" ]; then
-  docker build . --build-arg mmonit_version=${VERSION} -t ${IMAGE_NAME} -t ${DOCKER_REPO}:${VERSION}
+    echo "Building ${DOCKER_TAG} with ${VERSION}"
+    docker build . --build-arg mmonit_version=${VERSION} -t ${IMAGE_NAME}
 else
-  docker build . --build-arg mmonit_version=${DOCKER_TAG} -t ${IMAGE_NAME}
+    echo "Building ${DOCKER_TAG}"
+    docker build . --build-arg mmonit_version=${DOCKER_TAG} -t ${IMAGE_NAME}
 fi

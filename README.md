@@ -12,7 +12,7 @@ docker create \
   -e PGID=1000 \
   -e TZ=Europe/London \
   -e MMONIT_LICENSE_OWNER="Fred" \
-  -e MMONIT_LICENSE="MMONIT_LICENSE_DATA" \
+  -e MMONIT_LICENSE_KEY="MMONIT_LICENSE_DATA" \
   --expose 8080 \
   -v </path/to/appdata/config>:/config \
   --restart unless-stopped \
@@ -35,7 +35,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
 	  - MMONIT_LICENSE_OWNER="Fred"
-	  - MMONIT_LICENSE="MMONIT_LICENSE_DATA"
+	  - MMONIT_LICENSE_KEY="MMONIT_LICENSE_DATA"
     volumes:
       - </path/to/appdata/config>:/config
     expose:
@@ -60,7 +60,7 @@ services:
 | TZ=UTC               | Specify a timezone to use EG UTC        |
 | MMONIT_VERSION       | The version of M\/Monit to build        |
 | MMONIT_LICENSE_OWNER | Owner name from M\/Monit license        |
-| MMONIT_LICENSE       | Text of the M/Monit license             |
+| MMONIT_LICENSE_KEY   | Text of the M/Monit license             |
 | MMONIT_DATABSE_URL   | URL to access the M\/Monit databse      |
 | MMONIT_LIMIT_FD      | Override the default of 4096            |
 
@@ -82,7 +82,7 @@ services:
   * [ ] Document configuration
   * [ ] Document security
   * [ ] DB other than sqlite?
-  
+  * [ ] TAG with version
 
 
 

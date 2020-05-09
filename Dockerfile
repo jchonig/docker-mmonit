@@ -1,7 +1,7 @@
 FROM lsiobase/ubuntu:latest
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG mmonit_version=3.7.3
+ARG mmonit_version
 ARG mmonit_architecture=x64
 ARG mmonit_url=https://mmonit.com/dist/mmonit-${mmonit_version}-linux-${mmonit_architecture}.tar.gz
 

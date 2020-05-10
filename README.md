@@ -12,7 +12,7 @@ docker create \
   -e PGID=1000 \
   -e TZ=Europe/London \
   -e MMONIT_LICENSE_OWNER="Fred" \
-  -e MMONIT_LICENSE_KEY="MMONIT_LICENSE_DATA" \
+  -e MMONIT_LICENSE_KEY="<M/Monit license key>" \
   --expose 8080 \
   -v </path/to/appdata/config>:/config \
   --restart unless-stopped \
@@ -35,7 +35,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
 	  - MMONIT_LICENSE_OWNER="Fred"
-	  - MMONIT_LICENSE_KEY="MMONIT_LICENSE_DATA"
+	  - MMONIT_LICENSE_KEY="<M/Monit license key>"
     volumes:
       - </path/to/appdata/config>:/config
     expose:
@@ -77,12 +77,10 @@ services:
   * The M/Monit configuration directories are extracted into
     subdirectories of /config (conf, db, docroot, logs) unless they
     already exist.
+  * It is recommended to use nginx as an SSL proxy for security.
 
 ## TODO
-  * [ ] Document configuration
-  * [ ] Document security
-  * [ ] DB other than sqlite?
-  * [ ] TAG with version
+  * Facilitate setup of a dataabase other than sqlite3.
 
 
 

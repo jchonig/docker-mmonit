@@ -79,6 +79,11 @@ services:
     already exist.
   * It is recommended to use nginx as an SSL proxy for security.
 
+# Upgrading
+
+  * The container will automatically run the M/Monit upgrade script if
+    */config/version* indicates an older version was last run.
+
 ## TODO
   * Facilitate setup of a dataabase other than sqlite3.
 

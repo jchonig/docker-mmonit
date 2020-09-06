@@ -1,0 +1,37 @@
+#!/usr/bin/with-contenv bash
+
+print_vars () {
+    if [ -n "${1}" ]; then
+	title=" ${1}"
+    else
+	title=""
+    fi
+    echo "Environment${title}:"
+    echo "    PUID=${PUID}"
+    echo "    PGID=${PGID}"
+    echo "    TZ=${TZ}"
+    for var in "${!MMONIT_@}"; do
+	printf '    %s=%s\n' "$var" "${!var}"
+    done    
+}
+
+print_vars 
+
+# load env file if it exists
+if [ -f "/config/env" ]; then
+  source /config/env
+  print_vars "After sourcing /config/env"
+fi
+
+# Perform an upgrade if we were running an older version
+if [ -e /config/version ]; then
+    OLD_VERSION=$(cat /config/version)
+    dpkg --compare-versions "${OLD_VERSION}" "lt" "${MMONIT_VERSION}"
+    if [ $? -eq 0 -a -d "/config/mmonit-${OLD_VERSION}" ]; then
+	rsync -avq /opt/mmonit-${MMONIT_VERSION} /config/
+	/config/mmonit-${MMONIT_VERSION}/upgrade/upgrade -d -p /config/mmonit-${OLD_VERSION} &&
+	    echo ${MMONIT_VERSION} > /config/version
+    fi
+else
+    echo ${MMONIT_VERSION} > /config/version
+fi

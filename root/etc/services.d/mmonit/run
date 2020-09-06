@@ -4,5 +4,5 @@
 ulimit -n ${MMONIT_LIMIT_FD}
 
 # Drop privileges and run M/Monit
-s6-setuidgid abc /opt/mmonit-${MMONIT_VERSION}/bin/mmonit -i -r /config
+s6-setuidgid abc /config/mmonit-${MMONIT_VERSION}/bin/mmonit -i
 

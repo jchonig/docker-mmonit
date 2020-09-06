@@ -21,7 +21,7 @@ RUN \
 echo "*** install utilities needed ****" && \
 	apt update && \
         apt upgrade -y && \
-	apt -y install xmlstarlet && \
+	apt -y install rsync xmlstarlet && \
 	rm -rf /var/lib/apt/lists/* && \
 	echo "*** install M/Monit ***" && \
 	curl -o - ${mmonit_url} | tar -xzf -

@@ -63,6 +63,7 @@ services:
 | MMONIT_LICENSE_KEY   | Text of the M/Monit license             |
 | MMONIT_DATABSE_URL   | URL to access the M\/Monit databse      |
 | MMONIT_LIMIT_FD      | Override the default of 4096            |
+| MMONIT_TLS_VERSION   | Override the TLS version                |
 
 ## Volume Mappings (-v)
 

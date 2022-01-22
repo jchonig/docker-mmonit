@@ -7,7 +7,7 @@ A container running [M/Monit](https://mmonit.com).
 
 ```
 docker create \
-  --name=monit \
+  --name=mmonit \
   -e PUID=1000 \
   -e PGID=1000 \
   -e TZ=Europe/London \
@@ -28,14 +28,14 @@ Compatible with docker-compose v2 schemas.
 version: "2"
 services:
   monit:
-    image: jchonig/monit
-    container_name: monit
+    image: jchonig/mmonit
+    container_name: mmonit
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/London
-	  - MMONIT_LICENSE_OWNER="Fred"
-	  - MMONIT_LICENSE_KEY="<M/Monit license key>"
+      - MMONIT_LICENSE_OWNER="Fred"
+      - MMONIT_LICENSE_KEY="<M/Monit license key>"
     volumes:
       - </path/to/appdata/config>:/config
     expose:
@@ -61,7 +61,7 @@ services:
 | MMONIT_VERSION       | The version of M\/Monit to build        |
 | MMONIT_LICENSE_OWNER | Owner name from M\/Monit license        |
 | MMONIT_LICENSE_KEY   | Text of the M/Monit license             |
-| MMONIT_DATABSE_URL   | URL to access the M\/Monit databse      |
+| MMONIT_DATABASE_URL  | URL to access the M\/Monit database     |
 | MMONIT_LIMIT_FD      | Override the default of 4096            |
 | MMONIT_TLS_VERSION   | Override the TLS version                |
 
@@ -86,7 +86,7 @@ services:
     */config/version* indicates an older version was last run.
 
 ## TODO
-  * Facilitate setup of a dataabase other than sqlite3.
+  * Facilitate setup of a database other than sqlite3.
 
 
 

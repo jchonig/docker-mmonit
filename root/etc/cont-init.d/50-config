@@ -63,37 +63,37 @@ fi
 
 # minimum number of database connections to keep open
 if [ -n "${MMONIT_DATABASE_MIN_CON}" ]; then
-    echo Setting database URL
+    echo Setting database pool minimum connections
     xmlstarlet edit --inplace -u "/Server/Service/Engine/Realm/@minConnections" -v "${MMONIT_DATABASE_MIN_CON}" /config/mmonit-${MMONIT_VERSION}/conf/server.xml
 fi
 
 # maximum number of database connections to use
 if [ -n "${MMONIT_DATABASE_MAX_CON}" ]; then
-    echo Setting database URL
+    echo Setting database pool maximum connenction
     xmlstarlet edit --inplace -u "/Server/Service/Engine/Realm/@maxConnections" -v "${MMONIT_DATABASE_MAX_CON}" /config/mmonit-${MMONIT_VERSION}/conf/server.xml
 fi
 
 # Update http connector to add explicit "proxyScheme" if http scheme differs between reverse proxy and m/monit connector
 if [ -n "${MMONIT_PROXY_SCHEME}" ]; then
-    echo Setting database URL
+    echo Setting frontend proxy server scheme
     xmlstarlet edit --inplace -a "/Server/Service/Connector" -t attr -n proxyScheme -v "${MMONIT_PROXY_SCHEME}" /config/mmonit-${MMONIT_VERSION}/conf/server.xml
 fi
 
 # set explicit host name as used by frontend reverse proxy to create correct redirects
 if [ -n "${MMONIT_PROXY_NAME}" ]; then
-    echo Setting database URL
+    echo Setting frontend proxy server dns name
     xmlstarlet edit --inplace -a "/Server/Service/Connector" -t attr -n proxyName -v "${MMONIT_PROXY_NAME}" /config/mmonit-${MMONIT_VERSION}/conf/server.xml
 fi
 
 # set explicit http port as used by frontend reverse proxy to create correct redirects
 if [ -n "${MMONIT_PROXY_PORT}" ]; then
-    echo Setting database URL
+    echo Setting frontend proxy server port
     xmlstarlet edit --inplace -a "/Server/Service/Connector" -t attr -n proxyPort -v "${MMONIT_PROXY_PORT}" /config/mmonit-${MMONIT_VERSION}/conf/server.xml
 fi
 
 # Set session timeout (default 1800s)
 if [ -n "${MMONIT_SESSION_TIMEOUT}" ]; then
-    echo Setting database URL
+    echo Setting session timeout
     xmlstarlet edit --inplace -u "/Server/Service/Engine/Host/Context/@sessionTimeout" -v "${MMONIT_SESSION_TIMEOUT}" /config/mmonit-${MMONIT_VERSION}/conf/server.xml
 fi
 

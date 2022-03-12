@@ -7,21 +7,27 @@ ARG mmonit_url=https://mmonit.com/dist/mmonit-${mmonit_version}-linux-${mmonit_a
 
 ENV \
         MMONIT_VERSION=$mmonit_version \
-        MMONIT_DATAABSE_URL= \
+        MMONIT_DATABASE_URL= \
         MMONIT_LICENSE_OWNER= \
         MMONIT_LICENSE_KEY= \
         MMOUNT_DATABASE_URL= \
         MMONIT_LIMIT_FD=4096 \
         MMONIT_TLS_VERSION= \
+        MMONIT_DATABASE_MIN_CON= \
+        MMONIT_DATABASE_MAX_CON= \
+        MMONIT_PROXY_SCHEME= \
+        MMONIT_PROXY_NAME= \
+        MMONIT_PROXY_PORT= \
+        MMONIT_SESSION_TIMEOUT= \
         TZ=UTC
 
 WORKDIR /opt
 
 # Set up
 RUN \
-echo "*** install utilities needed ****" && \
+	echo "*** install utilities needed ****" && \
 	apt-get update && \
-        apt-get upgrade -y && \
+	apt-get upgrade -y && \
 	apt-get -y install rsync xmlstarlet && \
 	rm -rf /var/lib/apt/lists/* && \
 	echo "*** install M/Monit ***" && \

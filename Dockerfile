@@ -6,14 +6,14 @@ ARG mmonit_architecture=x64
 ARG mmonit_url=https://mmonit.com/dist/mmonit-${mmonit_version}-linux-${mmonit_architecture}.tar.gz
 
 ENV \
-	MMONIT_VERSION=$mmonit_version \
-        MMONIT_DATABSE_URL= \
-	MMONIT_LICENSE_OWNER= \
-	MMONIT_LICENSE_KEY= \
-	MMOUNT_DATABASE_URL= \
+        MMONIT_VERSION=$mmonit_version \
+        MMONIT_DATAABSE_URL= \
+        MMONIT_LICENSE_OWNER= \
+        MMONIT_LICENSE_KEY= \
+        MMOUNT_DATABASE_URL= \
         MMONIT_LIMIT_FD=4096 \
-	MMONIT_TLS_VERSION= \
-	TZ=UTC
+        MMONIT_TLS_VERSION= \
+        TZ=UTC
 
 WORKDIR /opt
 

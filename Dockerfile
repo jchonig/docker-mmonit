@@ -20,12 +20,12 @@ WORKDIR /opt
 # Set up
 RUN \
 echo "*** install utilities needed ****" && \
-	apt update && \
-        apt upgrade -y && \
-	apt -y install rsync xmlstarlet && \
+	apt-get update && \
+        apt-get upgrade -y && \
+	apt-get -y install rsync xmlstarlet && \
 	rm -rf /var/lib/apt/lists/* && \
 	echo "*** install M/Monit ***" && \
-	curl -o - ${mmonit_url} | tar -xzf -
+	curl -o - "${mmonit_url}" | tar -xzf -
 
 # Add configuration files
 COPY root /

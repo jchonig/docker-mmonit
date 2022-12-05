@@ -1,12 +1,13 @@
-FROM lsiobase/ubuntu:jammy
+From lsiobase/alpine:3.16
 
-ARG DEBIAN_FRONTEND=noninteractive
 ARG mmonit_version
+ARG mmonit_os=alpine
 ARG mmonit_architecture=x64
-ARG mmonit_url=https://mmonit.com/dist/mmonit-${mmonit_version}-linux-${mmonit_architecture}.tar.gz
+ARG mmonit_url=https://mmonit.com/dist/mmonit-${mmonit_version}-${mmonit_os}-${mmonit_architecture}.tar.gz
 
 ENV \
         MMONIT_VERSION=$mmonit_version \
+        MMONIT_OS=$mmonit_os \
         MMONIT_DATAABSE_URL= \
         MMONIT_LICENSE_OWNER= \
         MMONIT_LICENSE_KEY= \
@@ -20,10 +21,7 @@ WORKDIR /opt
 # Set up
 RUN \
 echo "*** install utilities needed ****" && \
-	apt-get update && \
-        apt-get upgrade -y && \
-	apt-get -y install rsync xmlstarlet && \
-	rm -rf /var/lib/apt/lists/* && \
+        apk add --no-cache dpkg rsync xmlstarlet && \
 	echo "*** install M/Monit ***" && \
 	curl -o - "${mmonit_url}" | tar -xzf -
 

@@ -17,23 +17,45 @@ print_vars () {
 
 print_vars init-mmonit-upgrade
 
+do_upgrade () {
+    echo "Upgrading from ${1} to ${2}"
+    /config/mmonit-${2}/upgrade/upgrade -d -p /config/mmonit-${1} &&
+	echo ${2} > /config/version
+}
+
 # load env file if it exists
 if [ -f "/config/env" ]; then
   source /config/env
   print_vars "After sourcing /config/env"
 fi
 
-# Perform an upgrade if we were running an older version
+if [ -f /config/.variant ]; then
+    old_variant=$(cat /config/.variant)
+else
+    old_variant=unknown
+fi
+if [ -x /sbin/apk ]; then
+    variant=alpine
+else
+    variant=linux
+fi
+
+# Perform an upgrade if we were running an older version or different variant (alpine vs Ubuntu)
 if [ -e /config/version ]; then
-    OLD_VERSION=$(cat /config/version)
-    dpkg --compare-versions "${OLD_VERSION}" "lt" "${MMONIT_VERSION}"
-    if [ $? -eq 0 -a -d "/config/mmonit-${OLD_VERSION}" ]; then
-	rsync -avq /opt/mmonit-${MMONIT_VERSION} /config/
-	/config/mmonit-${MMONIT_VERSION}/upgrade/upgrade -d -p /config/mmonit-${OLD_VERSION} &&
-	    echo ${MMONIT_VERSION} > /config/version
+    old_version=$(cat /config/version)
+    dpkg --compare-versions "${old_version}" "lt" "${MMONIT_VERSION}"; compare=$?
+    if [ ${compare} -eq 0 -o "${old_variant}" != "${variant}" ]; then
+	if [ -d "/config/mmonit-${old_version}" ]; then
+	    mv "/config/mmonit-${old_version}" "/config/mmonit-${old_version}-${old_variant}"
+	fi
+	rsync -avq /opt/mmonit-${MMONIT_VERSION} /config/ && \
+	    do_upgrade "${old_version}-${old_variant}" "${MMONIT_VERSION}" && \
+	    echo ${variant} > /config/.variant
     fi
 else
-    echo ${MMONIT_VERSION} > /config/version
+    rsync -avq /opt/mmonit-${2} /config/ && \
+	echo ${MMONIT_VERSION} > /config/version && \
+	echo ${variant} > /config/.variant
 fi
 
 echo "init-mmonit-upgrade done"

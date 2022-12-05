@@ -1,4 +1,4 @@
-FROM lsiobase/ubuntu:focal
+FROM lsiobase/ubuntu:jammy
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG mmonit_version

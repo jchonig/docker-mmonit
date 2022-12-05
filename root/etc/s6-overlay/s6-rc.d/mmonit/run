@@ -1,8 +1,9 @@
 #!/usr/bin/with-contenv bash
 
+echo "Starting mmonit ${MMONIT_VERSION}"
+
 # Reduce the size of the FD table
 ulimit -n ${MMONIT_LIMIT_FD}
 
 # Drop privileges and run M/Monit
-s6-setuidgid abc /config/mmonit-${MMONIT_VERSION}/bin/mmonit -i
-
+exec s6-setuidgid abc /config/mmonit-${MMONIT_VERSION}/bin/mmonit -i

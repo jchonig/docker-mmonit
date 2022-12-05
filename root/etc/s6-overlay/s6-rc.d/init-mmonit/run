@@ -15,7 +15,7 @@ print_vars () {
     done    
 }
 
-print_vars 
+print_vars init-mmonit
 
 # load env file if it exists
 if [ -f "/config/env" ]; then
@@ -91,3 +91,5 @@ sed -i -E -e 's/&amp;/\&#38;/g' /config/mmonit-${MMONIT_VERSION}/conf/server.xml
 chown -R abc:abc \
 	/config \
 	/opt/mmonit-${MMONIT_VERSION}
+
+echo "init-mmonit done"

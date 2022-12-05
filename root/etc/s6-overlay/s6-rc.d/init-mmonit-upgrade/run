@@ -15,7 +15,7 @@ print_vars () {
     done    
 }
 
-print_vars 
+print_vars init-mmonit-upgrade
 
 # load env file if it exists
 if [ -f "/config/env" ]; then
@@ -35,3 +35,5 @@ if [ -e /config/version ]; then
 else
     echo ${MMONIT_VERSION} > /config/version
 fi
+
+echo "init-mmonit-upgrade done"

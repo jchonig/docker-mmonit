@@ -21,7 +21,7 @@ WORKDIR /opt
 # Set up
 RUN \
 echo "*** install utilities needed ****" && \
-        apk add --no-cache dpkg rsync xmlstarlet && \
+        apk add --no-cache dpkg logrotate rsync xmlstarlet && \
 	echo "*** install M/Monit ***" && \
 	curl -o - "${mmonit_url}" | tar -xzf -
 

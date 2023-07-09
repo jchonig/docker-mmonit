@@ -1,0 +1,83 @@
+#!/usr/bin/with-contenv sh
+
+log () {
+    echo "$(date +'%F %T') ${*}" | tee -a /config/logs/backup.log
+}
+
+fail () {
+    log "${*}"
+    exit 1
+}
+
+test -d /backup || fail "/backup is not a directory"
+test -w /backup || fail "/backup is not writable directory"
+
+# Determine backup type from filename
+case ${0} in
+    */monthly/*)
+	type=monthly
+	age=12
+	;;
+    */weekly/*)
+	type=weekly
+	age=4
+	;;
+    */daily/*)
+	type=daily
+	age=7
+	;;
+    */hourly/*)
+	type=hourly
+	age=0
+	;;
+    *)
+	fail "Unable to determine backup time from filename: ${0}"
+	''
+esac
+
+# Create backup filename and check that it exists
+backup_filename="mmonit_backup_$(date +'%FT%T')_${type}.sq3"
+test -e /backup/${backup_filename} && fail "/backup/${backup_filename} exists"
+tmpfile=$(mktemp -t ${progrname}.XXXXXXXXXX)
+trap "rm -f ${backup_filename} ${tmpfile}" 1 2 3 13 15
+
+# Process backup per DB method
+case "${MMONIT_DATABASE_URL}" in
+    "mysql://")
+	fail "Backing up MySQL is not yet supported"
+	;;
+    "postgresql://")
+	fail "Backing up PostgresQL is not yet supported"
+	;;
+    ""|"sqlite://")  # Assume sqlist
+	which sqlite3 >/dev/null || {
+	    output=$(apk add -Uq sqlite 2>&1)
+	    test $? -ne 0 && fail "Unable to install sqlite3: ${output}"
+	}
+	for try in $(seq 1 10); do
+	    output=$(s6-setuidgid abc sqlite3 /config/mmonit-${MMONIT_VERSION}/db/mmonit.db ".backup /backup/${backup_filename}" 2>&1)
+	    test $? -eq 0 && break
+	    log "Backup failed (attempt ${try}): ${output}"
+	    sleep ${try}
+	done
+	;;
+    *)
+	fail "Unsupported database type: ${MMONIT_DATABASE_URL}"
+	;;
+esac
+
+# Verify backups
+test -e "/backup/${backup_filename}" || fail "ERROR: /backup/${backup_filename} not created"
+s6-setuidgid abc sqlite3 /backup/${backup_filename} .dump > ${tmpfile}
+test $? -ne 0 && fail "Backup verification failed"
+n_lines=$(cat ${tmpfile} | wc -l)
+test ${n_lines} -gt 3 || fail "Backup verification failed: only ${n_lines} lines!"
+rm -f ${tmpfile}
+log "/backup/${backup_filename} created and verified"
+
+# Clean up old backups
+output=$(s6-setuidgid abc find /backup -name \*_${type}.sq3 -ctime +${age} -delete -print 2>&1)
+test $? -ne 0 -o -n "${output}" && fail "Cleaning old backups: ${output}"
+test -n "${output}" && log "Cleaned: ${output//\n/ }"
+
+exit 0

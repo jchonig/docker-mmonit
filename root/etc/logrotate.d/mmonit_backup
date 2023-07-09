@@ -1,0 +1,6 @@
+/config/logs/backup.log {
+	rotate 6
+	monthly
+	compress
+	missingok
+}

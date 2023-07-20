@@ -2,10 +2,5 @@
 
 VERSION=$(cat VERSION)
 
-if [ ${DOCKER_TAG} == "latest" ]; then
-    echo "Building ${DOCKER_TAG} with ${VERSION}"
-    docker build . --build-arg mmonit_version=${VERSION} -t ${IMAGE_NAME}
-else
-    echo "Building ${DOCKER_TAG}"
-    docker build . --build-arg mmonit_version=${DOCKER_TAG} -t ${IMAGE_NAME}
-fi
+echo "Building ${IMAGE_NAME} with M/Monit ${VERSION}"
+docker build . --build-arg mmonit_version=${VERSION} -t ${IMAGE_NAME}

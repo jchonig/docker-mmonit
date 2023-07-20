@@ -15,6 +15,7 @@ docker create \
   -e MMONIT_LICENSE_KEY="<M/Monit license key>" \
   --expose 8080 \
   -v </path/to/appdata/config>:/config \
+  -v </path/to/backupdir>:/backup \
   --restart unless-stopped \
   jchonig/mmonit
 ```
@@ -38,6 +39,7 @@ services:
       - MMONIT_LICENSE_KEY="<M/Monit license key>"
     volumes:
       - </path/to/appdata/config>:/config
+      - </path/to/backupdir>:/backup
     expose:
       - 8080
     restart: unless-stopped
@@ -48,13 +50,13 @@ services:
 ## Ports (--expose)
 
 | Volume | Function                                         |
-| ------ | --------                                         |
+|--------|--------------------------------------------------|
 | 8080   | Used for web access and for clients to report in |
 
 ## Environment Variables (-e)
 
 | Env                  | Function                                |
-| ---                  | --------                                |
+|----------------------|-----------------------------------------|
 | PUID=1000            | for UserID - see below for explanation  |
 | PGID=1000            | for GroupID - see below for explanation |
 | TZ=UTC               | Specify a timezone to use EG UTC        |
@@ -67,26 +69,37 @@ services:
 
 ## Volume Mappings (-v)
 
-| Volume  | Function                         |
-| ------  | --------                         |
-| /config | All the config files reside here |
+| Volume  | Function                                    |
+|---------|---------------------------------------------|
+| /config | All the config files reside here            |
+| /backup | Optional location to store periodic backups |
 
 # Application Setup
 
   * Environment variables can also be passed in a file named `env` in
     the `config` directory. This file is sourced by the shell.
-  * The M/Monit configuration directories are extracted into
-    subdirectories of /config (conf, db, docroot, logs) unless they
-    already exist.
+  * The M/Monit configuration directories are extracted into a
+    directory in /config named monit-${MONIT_VERSION} unless it
+    already exists. 
   * It is recommended to use nginx as an SSL proxy for security.
+
+# Backups
+
+If the /backup volume is mounted, periodic (hourly, daily, weekly and
+monthly) backups will be created with a retention of (25 hours, 8
+days, 5 weeks, and 12 months respectively). The onwership will be the
+container PUID and PGID.
+
+Logs will be stored in /config/logs/backup.log and rotated monthly.
 
 # Upgrading
 
   * The container will automatically run the M/Monit upgrade script if
     */config/version* indicates an older version was last run.
+  * Old versions /config/mmonit-${MMONIT_VERSION} will need to be
+    manually removed at this time.
 
 ## TODO
   * Facilitate setup of a database other than sqlite3.
-
-
-
+  * Backup databases other than sqlite3
+  * Keep only last version of mmonit-${VERSION} dir

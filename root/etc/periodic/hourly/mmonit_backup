@@ -16,11 +16,11 @@ test -w /backup || fail "/backup is not writable directory"
 case ${0} in
     */monthly/*)
 	type=monthly
-	age=12
+	age=$(expr 52 '*' 7)
 	;;
     */weekly/*)
 	type=weekly
-	age=4
+	age=$(expr 4 '*' 7)
 	;;
     */daily/*)
 	type=daily
@@ -77,7 +77,7 @@ log "/backup/${backup_filename} created and verified"
 
 # Clean up old backups
 output=$(s6-setuidgid abc find /backup -name \*_${type}.sq3 -ctime +${age} -delete -print 2>&1)
-test $? -ne 0 -o -n "${output}" && fail "Cleaning old backups: ${output}"
-test -n "${output}" && log "Cleaned: ${output//\n/ }"
+test $? -ne 0 -o -n "${output}" && fail "Cleaning old backups with age ${age}: ${output}"
+test -n "${output}" && log "Cleaned older than ${age}: ${output//\n/ }"
 
 exit 0

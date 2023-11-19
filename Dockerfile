@@ -1,4 +1,4 @@
-From lsiobase/alpine:3.17
+From lsiobase/alpine:3.18
 
 ARG mmonit_version
 ARG mmonit_os=alpine

@@ -53,7 +53,7 @@ if [ -e /config/version ]; then
 	    echo ${variant} > /config/.variant
     fi
 else
-    rsync -avq /opt/mmonit-${2} /config/ && \
+    rsync -avq /opt/mmonit-${MMONIT_VERSION} /config/ && \
 	echo ${MMONIT_VERSION} > /config/version && \
 	echo ${variant} > /config/.variant
 fi

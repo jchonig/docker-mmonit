@@ -8,7 +8,6 @@ ARG mmonit_url=https://mmonit.com/dist/mmonit-${mmonit_version}-${mmonit_os}-${m
 ENV \
         MMONIT_VERSION=$mmonit_version \
         MMONIT_OS=$mmonit_os \
-        MMONIT_DATABASE_URL= \
         MMONIT_LICENSE_OWNER= \
         MMONIT_LICENSE_KEY= \
         MMONIT_DATABASE_URL= \

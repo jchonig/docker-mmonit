@@ -92,6 +92,8 @@ container PUID and PGID.
 
 Logs will be stored in /config/logs/backup.log and rotated monthly.
 
+This has been tested with sqlite3 and mariadb.
+
 # Upgrading
 
   * The container will automatically run the M/Monit upgrade script if
@@ -99,7 +101,6 @@ Logs will be stored in /config/logs/backup.log and rotated monthly.
   * Old versions /config/mmonit-${MMONIT_VERSION} will need to be
     manually removed at this time.
 
-## TODO
-  * Facilitate setup of a database other than sqlite3.
-  * Backup databases other than sqlite3
-  * Keep only last version of mmonit-${VERSION} dir
+# More information
+
+See the [Wiki](https://github.com/jchonig/docker-mmonit/wiki).

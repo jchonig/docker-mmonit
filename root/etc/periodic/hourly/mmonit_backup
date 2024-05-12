@@ -128,8 +128,8 @@ esac
 log "/backup/${backup_filename} created and verified"
 
 # Clean up old backups
-output=$(s6-setuidgid abc find /backup -name \*_${type}.${suffix} -ctime +${age} -delete -print 2>&1)
-test $? -ne 0 && fail "Cleaning old backups with age ${age}: ${output}"
-test -n "${output}" && log "Cleaned older than ${age}: ${output//\n/ }"
+output=$(s6-setuidgid abc find /backup -name \*_${type}.* -mtime +${age} -delete -print 2>&1)
+test $? -ne 0 && fail "Cleaning old backups older than ${age}: ${output}"
+test -n "${output}" && log "Cleaned older than ${age}: ${output%%$'\n'*}"
 
 exit 0

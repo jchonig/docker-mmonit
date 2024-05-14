@@ -1,4 +1,4 @@
-From lsiobase/alpine:3.18
+FROM lsiobase/alpine:3.19
 
 ARG mmonit_version
 ARG mmonit_os=alpine
@@ -19,10 +19,10 @@ WORKDIR /opt
 
 # Set up
 RUN \
-echo "*** install utilities needed ****" && \
-        apk add --no-cache dpkg logrotate rsync xmlstarlet && \
-	echo "*** install M/Monit ***" && \
-	curl -o - "${mmonit_url}" | tar -xzf -
+        echo "*** install utilities needed ****" && \
+        apk add --no-cache dpkg logrotate rsync xmlstarlet trurl && \
+        echo "*** install M/Monit ***" && \
+        curl -o - "${mmonit_url}" | tar -xzf -
 
 # Add configuration files
 COPY root /

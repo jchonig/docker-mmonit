@@ -10,14 +10,14 @@ fail () {
 }
 
 backup_fail () {
-    test -n "${backup_filename}" && rm -f ${backup_filename}
-    test -n "${tmpfile}" && rm -f ${tmpfile}
+    test -n "${backup_filename}" && rm -f "${backup_filename}"
+    test -n "${tmpfile}" && rm -f "${tmpfile}"
     log "${*}"
     exit 1
 }
 
 # If we stay in /root we'll get warnings when find finishes
-cd /config/mmonit-${MMONIT_VERSION} || fail "Unable to cd into /config/mmonit-${MMONIT_VERSION}"
+cd "/config/mmonit-${MMONIT_VERSION}" || fail "Unable to cd into /config/mmonit-${MMONIT_VERSION}"
 
 test -d /backup || fail "/backup is not a directory"
 test -w /backup || fail "/backup is not writable directory"
@@ -46,20 +46,20 @@ case ${0} in
 esac
 
 # Parse the database URL
-if [[ ${MMONIT_DATABASE_URL} =~ ^([^:]+)://([^:]+):([^@]+)@([^:]+):([0-9]+)/([a-zA-Z0-9]+)$ ]]; then
-    database="${BASH_REMATCH[1]}"
-    database_user="${BASH_REMATCH[2]}"
-    database_password="${BASH_REMATCH[3]}"
-    database_host="${BASH_REMATCH[4]}"
-    database_port="${BASH_REMATCH[5]}"
-    database_name="${BASH_REMATCH[6]}"
+if [[ "${MMONIT_DATABASE_URL}" =~ ^[a-z]+://.+ ]]; then
+    database="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{scheme}')"
+    database_user="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{user}')"
+    database_password="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{password}')"
+    database_host="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{host}')"
+    database_port="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{port}')"
+    database_name="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{path}' | cut -d '/' -f 2)"
     suffix=sql
     case "${database}" in
-	"mysql")
+    "mysql")
 	    backup_prog=mariadb-dump
 	    database_pkg=mariadb-client
 	    ;;
-	*)
+    *)
 	    fail "Unsupported database type: ${database}"
 	    ;;
     esac
@@ -77,16 +77,26 @@ which "${backup_prog}" >/dev/null || {
 }
 
 # Create backup filename and check that it exists
-backup_filename="mmonit_backup_$(date +'%FT%T')_${type}.${suffix}"
-test -e /backup/${backup_filename} && fail "/backup/${backup_filename} exists"
-tmpfile=$(mktemp -t ${progname}.XXXXXXXXXX)
-trap "rm -f ${backup_filename} ${tmpfile}" 1 2 3 13 15
+backup_filename="/backup/mmonit_backup_$(date +'%FT%T')_${type}.${suffix}"
+test -e "${backup_filename}" && fail "${backup_filename} exists"
+tmpfile=$(mktemp -t "${progname}.XXXXXXXXXX")
+cnffile=$(mktemp -t database.cnf.XXXXXXXXXX)
+trap "rm -f ${backup_filename} ${tmpfile} ${cnffile}" 1 2 3 13 15
 
 # Process backup per DB method
 case "${database}" in
     "mysql")
+    database_socket="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{query:unix-socket}')"
+    cat > "$cnffile" <<EndOfDocument
+    [client]
+    host = ${database_host}
+    port = ${database_port:-3306}
+    user = ${database_user}
+    password = ${database_password}
+    socket = ${database_socket}
+EndOfDocument
 	for try in $(seq 1 10); do
-	    output=$(s6-setuidgid abc ${backup_prog} --no-defaults -h "${database_host}" -u "${database_user}" --password="${database_password}" --all-databases -r "/backup/${backup_filename}" 2>&1)
+	    output=$(s6-setuidgid abc ${backup_prog} --defaults-file "${cnffile}" -r "${backup_filename}" "${database_name}" 2>&1)
 	    test $? -eq 0 && break
 	    log "Backup failed (attempt ${try}): ${output}"
 	    sleep ${try}
@@ -97,7 +107,7 @@ case "${database}" in
 	;;
     ""|"sqlite://")  # Assume sqlist
 	for try in $(seq 1 10); do
-	    output=$(s6-setuidgid abc ${backup_proj} db/mmonit.db ".backup /backup/${backup_filename}" 2>&1)
+	    output=$(s6-setuidgid abc ${backup_prog} db/mmonit.db ".backup ${backup_filename}" 2>&1)
 	    test $? -eq 0 && break
 	    log "Backup failed (attempt ${try}): ${output}"
 	    sleep ${try}
@@ -106,10 +116,10 @@ case "${database}" in
 esac
 
 # Verify backups
-test -s "/backup/${backup_filename}" || backup_fail "ERROR: /backup/${backup_filename} not created or empty"
+test -s "${backup_filename}" || backup_fail "ERROR: ${backup_filename} not created or empty"
 case "${database}" in
     "mysql")
-	n_lines=$(wc -l /backup/${backup_filename})
+	n_lines=$(wc -l "${backup_filename}")
 	n_lines="${n_lines%% *}"
 	test ${n_lines} -gt 3 || backup_fail "Backup verification failed: only ${n_lines} lines!"
 	;;
@@ -117,15 +127,15 @@ case "${database}" in
 	fail "Backing up PostgresQL is not yet supported"
 	;;
     "sqlite")  # Assume sqlist
-	s6-setuidgid abc ${backup_prog} /backup/${backup_filename} .dump > ${tmpfile}
+	s6-setuidgid abc ${backup_prog} "${backup_filename}" .dump > "${tmpfile}"
 	test $? -ne 0 && backup_fail "Backup verification failed"
-	n_lines=$(wc -l ${tmpfile})
+	n_lines=$(wc -l "${tmpfile}")
 	n_lines="${n_lines%% *}"
-	rm -f ${tmpfile}
+	rm -f "${tmpfile}"
 	test ${n_lines} -gt 3 || backup_fail "Backup verification failed: only ${n_lines} lines!"
 	;;
 esac
-log "/backup/${backup_filename} created and verified"
+log "${backup_filename} created and verified"
 
 # Clean up old backups
 output=$(s6-setuidgid abc find /backup -name \*_${type}.* -mtime +${age} -delete -print 2>&1)

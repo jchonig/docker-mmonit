@@ -92,4 +92,10 @@ chown -R abc:abc \
 	/config \
 	/opt/mmonit-${MMONIT_VERSION}
 
+# Set /etc/localtime
+if [ -n "${TZ}" ]; then
+    echo "Setting up /etc/localtime from ${TZ}"
+    ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime
+fi
+
 echo "init-mmonit done"

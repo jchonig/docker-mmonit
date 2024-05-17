@@ -92,4 +92,42 @@ chown -R abc:abc \
 	/config \
 	/opt/mmonit-${MMONIT_VERSION}
 
+# Set /etc/localtime
+if [ -n "${TZ}" ]; then
+    echo "Setting up /etc/localtime from ${TZ}"
+    ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime
+fi
+
+if [ -d /backup ]; then
+    echo "Configuring backups"
+
+    database=$(expr "${MMONIT_DATABASE_URL}" : '\(.*\)://.*$')
+    if [ -n "${database}" ]; then
+	case "${database}" in
+	    "mysql")
+		apk add -Uq mariadb-client 2>&1
+		database="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{scheme}')"
+		database_user="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{user}')"
+		database_password="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{password}')"
+		database_host="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{host}')"
+		database_port="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{port}')"
+		database_socket="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{query:unix-socket}')"
+		cat > /etc/mysqldump.cnf <<EndOfDocument
+    [client]
+    host = ${database_host}
+    port = ${database_port:-3306}
+    user = ${database_user}
+    password = ${database_password}
+    socket = ${database_socket}
+EndOfDocument
+		;;
+	    *)
+		echo "Backups of ${database} not yet supported"
+		;;
+	esac
+    else
+	apk add -Uq sqlite 2>&1
+    fi
+fi
+
 echo "init-mmonit done"

@@ -9,6 +9,7 @@ ENV \
         MMONIT_VERSION=$mmonit_version \
         MMONIT_OS=$mmonit_os \
         MMONIT_DATABASE_URL= \
+        MMONIT_DATABASE_BACKUP_STATS=yes \
         MMONIT_LICENSE_OWNER= \
         MMONIT_LICENSE_KEY= \
         MMONIT_LIMIT_FD=4096 \

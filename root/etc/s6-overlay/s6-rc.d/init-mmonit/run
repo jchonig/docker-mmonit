@@ -119,6 +119,8 @@ if [ -d /backup ]; then
     user = ${database_user}
     password = ${database_password}
     socket = ${database_socket}
+    [mariadb-dump]
+    single-transaction = TRUE
 EndOfDocument
 		;;
 	    *)

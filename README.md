@@ -55,17 +55,18 @@ services:
 
 ## Environment Variables (-e)
 
-| Env                  | Function                                |
-|----------------------|-----------------------------------------|
-| PUID=1000            | for UserID - see below for explanation  |
-| PGID=1000            | for GroupID - see below for explanation |
-| TZ=UTC               | Specify a timezone to use EG UTC        |
-| MMONIT_VERSION       | The version of M\/Monit to build        |
-| MMONIT_LICENSE_OWNER | Owner name from M\/Monit license        |
-| MMONIT_LICENSE_KEY   | Text of the M/Monit license             |
-| MMONIT_DATABASE_URL  | URL to access the M\/Monit database     |
-| MMONIT_LIMIT_FD      | Override the default of 4096            |
-| MMONIT_TLS_VERSION   | Override the TLS version                |
+| Env                          | Function                                                            |
+|------------------------------|---------------------------------------------------------------------|
+| PUID=1000                    | for UserID - see below for explanation                              |
+| PGID=1000                    | for GroupID - see below for explanation                             |
+| TZ=UTC                       | Specify a timezone to use EG UTC                                    |
+| MMONIT_VERSION               | The version of M\/Monit to build                                    |
+| MMONIT_LICENSE_OWNER         | Owner name from M\/Monit license                                    |
+| MMONIT_LICENSE_KEY           | Text of the M/Monit license                                         |
+| MMONIT_DATABASE_BACKUP_STATS | "yes" or "no" to backup statistics tables (which can be very large) |
+| MMONIT_DATABASE_URL          | URL to access the M\/Monit database                                 |
+| MMONIT_LIMIT_FD              | Override the default of 4096                                        |
+| MMONIT_TLS_VERSION           | Override the TLS version                                            |
 
 ## Volume Mappings (-v)
 
@@ -93,6 +94,8 @@ container PUID and PGID.
 Logs will be stored in /config/logs/backup.log and rotated monthly.
 
 This has been tested with sqlite3 and mariadb.
+
+Also see `MMONIT_DATABASE_BACKUP_STATS` when using mariadb.
 
 # Upgrading
 

@@ -75,7 +75,7 @@ case "${database}" in
     "mysql")
 	database_name="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{path}' | cut -d '/' -f 2)"
 	for try in $(seq 1 10); do
-	    output=$(s6-setuidgid abc mariadb-dump --defaults-file=/etc/mysqldump.cnf -r "${backup_filename}" "${database_name}" 2>&1)
+	    output=$(s6-setuidgid abc nice mariadb-dump --defaults-file=/etc/mysqldump.cnf -r "${backup_filename}" "${database_name}" 2>&1)
 	    test $? -eq 0 && break
 	    log "Backup failed (attempt ${try}): ${output}"
 	    sleep ${try}
@@ -86,7 +86,7 @@ case "${database}" in
 	;;
     ""|"sqlite://")  # Assume sqlist
 	for try in $(seq 1 10); do
-	    output=$(s6-setuidgid abc sqlite3 db/mmonit.db ".backup ${backup_filename}" 2>&1)
+	    output=$(s6-setuidgid abc nice sqlite3 db/mmonit.db ".backup ${backup_filename}" 2>&1)
 	    test $? -eq 0 && break
 	    log "Backup failed (attempt ${try}): ${output}"
 	    sleep ${try}

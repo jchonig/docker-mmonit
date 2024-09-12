@@ -93,9 +93,16 @@ container PUID and PGID.
 
 Logs will be stored in /config/logs/backup.log and rotated monthly.
 
-This has been tested with sqlite3 and mariadb.
+This has been tested with sqlite3 and mariadb.  Backups of postgresql
+are not yet supported.
 
-Also see `MMONIT_DATABASE_BACKUP_STATS` when using mariadb.
+Also see `MMONIT_DATABASE_BACKUP_STATS` when using mariadb.  On a
+slower system, dumping all the statistics can cause M/Monit to drop
+data and cause problems.
+
+Backups can be run by hand by running `/usr/local/bin/mmonit_backup`.
+Specify a type with `--type FOO` to separate them from periodic
+backups.
 
 # Upgrading
 
@@ -103,6 +110,12 @@ Also see `MMONIT_DATABASE_BACKUP_STATS` when using mariadb.
     */config/version* indicates an older version was last run.
   * Old versions /config/mmonit-${MMONIT_VERSION} will need to be
     manually removed at this time.
+  * If an upgrade fails, /config/.upgrade_failed will have contain the
+    reason for the failure and M/Monit will not start until the issue
+    is fixed and the file is removed.
+  * If backups are configured, a full backup of the database will be
+    done before the upgrade starts.  If the upgrade fails, the
+    database will be restored from the backup.
 
 # More information
 

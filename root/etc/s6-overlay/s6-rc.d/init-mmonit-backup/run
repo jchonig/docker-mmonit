@@ -1,0 +1,90 @@
+#!/usr/bin/with-contenv bash
+
+print_vars () {
+    if [ -n "${1}" ]; then
+	title=" ${1}"
+    else
+	title=""
+    fi
+    echo "Environment${title}:"
+    echo "    PUID=${PUID}"
+    echo "    PGID=${PGID}"
+    echo "    TZ=${TZ}"
+    for var in "${!MMONIT_@}"; do
+	printf '    %s=%s\n' "$var" "${!var}"
+    done    
+}
+
+print_vars init-mmonit-backup
+
+if [ -d /backup ]; then
+    echo "Configuring backps"
+
+    STATS_TABLES="statistics_string \
+    	statistics_int \
+	10statistics_llong \
+	statistics_float \
+	statistics_double \
+	statistics_aggregate_1m \
+	statistics_aggregate_2m \
+	statistics_aggregate_15m \
+	statistics_aggregate_30m \
+	statistics_aggregate_1h \
+	statistics_aggregate_2h \
+	statistics_aggregate_4h \
+	statistics_aggregate_12h \
+	statistics_aggregate_1d \
+	statistics_aggregate_3d \
+	statistics_aggregate_7d \
+	statistics_aggregate_14d \
+	statistics_aggregate_4w"
+
+    database=$(expr "${MMONIT_DATABASE_URL}" : '\(.*\)://.*$')
+    if [ -n "${database}" ]; then
+	case "${database}" in
+	    "mysql")
+		apk add -Uq mariadb-client 2>&1
+		database_name="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{path}' | cut -d '/' -f 2)"
+		database_user="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{user}')"
+		database_password="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{password}')"
+		database_host="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{host}')"
+		database_port="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{port}')"
+		database_socket="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{query:unix-socket}')"
+		(
+		    cat <<EndOfDocument
+[client]
+host = ${database_host}
+port = ${database_port:-3306}
+user = ${database_user}
+password = ${database_password}
+socket = ${database_socket}
+
+[mariadb-dump]
+single-transaction = TRUE
+
+[mariadb-dump_upgrade]
+add-drop-database = TRUE
+EndOfDocument
+		    case ${MMONIT_DATABASE_BACKUP_STATS} in
+			no)
+			    echo
+			    echo "[mariadb-dump_periodic]"
+			    for table in ${STATS_TABLES}; do
+				echo "ignore-table-data = ${database_name}.${table}"
+			    done
+			    ;;
+			*)
+			    ;;
+		    esac
+		)  > /etc/mysqldump.cnf
+		;;
+	    *)
+		echo "Backups of ${database} not yet supported"
+		;;
+	esac
+    else
+	apk add -Uq sqlite 2>&1
+    fi
+fi
+
+echo "init-mmonit-backup done"

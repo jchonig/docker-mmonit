@@ -17,18 +17,6 @@ print_vars () {
 
 print_vars init-mmonit-upgrade
 
-do_upgrade () {
-    echo "Upgrading from ${1} to ${2}"
-    /config/mmonit-${2}/upgrade/upgrade -d -p /config/mmonit-${1}
-    if [ $? -eq 0 ]; then
-	echo "Upgrade from ${1} to ${2} succeeded"
-	echo ${2} > /config/version
-    else
-	echo "Upgrade from ${1} to ${2} failed"
-	exit $?
-    fi
-}
-
 # load env file if it exists
 if [ -f "/config/env" ]; then
   source /config/env
@@ -46,17 +34,48 @@ else
     variant=linux
 fi
 
+upgrade_failed () {
+    echo "${*}" | tee /config/.upgrade_failed
+    exit 1
+}
+
 # Perform an upgrade if we were running an older version or different variant (alpine vs Ubuntu)
 if [ -e /config/version ]; then
+    if [ -f /config/.upgrade_failed ]; then
+	echo "Previous upgrade failed: $(cat /config/.upgrade_failed)"
+	sleep 60
+	exit 1
+    fi
     old_version=$(cat /config/version)
     dpkg --compare-versions "${old_version}" "lt" "${MMONIT_VERSION}"; compare=$?
     if [ ${compare} -eq 0 -o "${old_variant}" != "${variant}" ]; then
+	last_backup=
 	if [ -d "/config/mmonit-${old_version}" ]; then
+	    {
+		echo "Backing up ${old_version}-${old_variant} as upgrade-${old_version}-${MMONIT_VERSION}"
+		cd /config/mmonit-${old_version} || upgrade_failed "cd into old config dir"
+		if [ -d /backup ]; then
+		    /usr/local/sbin/mmonit_backup --type upgrade-${old_version}-${MMONIT_VERSION} || upgrade_failed "Backup failed"
+		    last_backup=$(cat /config/.last_backup)
+		fi
+	    }
 	    mv "/config/mmonit-${old_version}" "/config/mmonit-${old_version}-${old_variant}"
+	    restore=restore
+	else
+	    restore=
 	fi
-	rsync -avq /opt/mmonit-${MMONIT_VERSION} /config/ && \
-	    do_upgrade "${old_version}-${old_variant}" "${MMONIT_VERSION}" && \
+	rsync -avq /opt/mmonit-${MMONIT_VERSION} /config/ || upgrade_failed "Copying /opt/mmonit-${MMONIT_VERSION} /config"
+	echo "Upgrading from ${old_version}-${old_variant} to ${MMONIT_VERSION}"
+	/config/mmonit-${MMONIT_VERSION}/upgrade/upgrade -d -p /config/mmonit-${old_version}-${old_variant} > /config/mmonit-${MMONIT_VERSION}/logs/upgrade-${old_version}-${MMONIT_VERSION}.log 2>&1
+	if [ $? -eq 0 ]; then
+	    echo "Upgrade from ${old_version}-${old_variant} to ${MMONIT_VERSION} succeeded"
+	    echo ${MMONIT_VERSION} > /config/version
 	    echo ${variant} > /config/.variant
+	else
+	    test -n "${restore}" && mv "/config/mmonit-${old_version}-${old_variant}" "/config/mmonit-${old_version}"
+	    test -n "${last_backup}" && /usr/local/bin/mmonit_restore "${last_backup}"
+	    upgrade_failed "Upgrade script failed, see /config/${MMONIT_VERSION}/logs/upgrade-${old_version}-${MMONIT_VERSION}.log"
+	fi
     fi
 else
     rsync -avq /opt/mmonit-${MMONIT_VERSION} /config/ && \

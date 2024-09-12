@@ -1,0 +1,39 @@
+#!/usr/bin/with-contenv sh
+
+progname=$(basename "${0}")
+
+log () {
+    echo "$(date +'%F %T') ${*}" | tee -a /config/logs/backup.log
+}
+
+fail () {
+    log "${progname}: ${*}"
+    exit 1
+}
+
+test $# -eq 1 || fail "Usage: ${progname} <FILEPATH>"
+backup_filename="${1}"
+
+test -f "${backup_filename}" || fail "${backup_filename} does not exist or is not a file"
+
+database_name="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{path}' | cut -d '/' -f 2)"
+
+echo "${progname}: Attempting from ${backup_filename}"
+case ${filename} in
+    *.sql)
+	s6-setuidgid abc mariadb --defaults-file=/etc/mysqldump.cnf "${database_name}" < "${backup_filename}"
+	;;
+    *.sq3)
+	cd /config || fail "Unable to cd into /config"
+	mv db/mmonit.db "db/mmonit.db.$(date +'%FT%T')"
+	s6-setuidgid abc nice sqlite3 db/mmonit.db .restore db/mmonit.db "${backup_filename}"
+	;;
+    *)
+	fail "I don't know how to restore from ${backup_filename}"
+	;;
+esac
+rc=$?
+
+echo "${progname}: Restore from ${backup_filename} returned ${rc}"
+
+exit ${rc}

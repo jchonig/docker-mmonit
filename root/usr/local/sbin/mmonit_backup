@@ -1,0 +1,164 @@
+#!/usr/bin/with-contenv sh
+
+progname=$(basename "${0}")
+
+log () {
+    echo "$(date +'%F %T') ${*}" | tee -a /config/logs/backup.log
+}
+
+fail () {
+    log "${progname}: ${*}"
+    exit 1
+}
+
+backup_fail () {
+    test -n "${backup_filename}" && rm -f "${backup_filename}"
+    test -n "${tmpfile}" && rm -f "${tmpfile}"
+    log "${*}"
+    exit 1
+}
+
+age=
+type=
+options=$(getopt -n ${progname} -l age:,type: -- ${progname} "$@") || fail "Incorrect option provided"
+eval set -- "${options}"
+while true; do
+    case "${1}" in
+	--age)
+	    age="${2}"
+	    shift 2
+	    ;;
+	--type)
+	    type="${2}"
+	    shift 2
+	    ;;
+	--)
+	    break
+	    ;;
+	*)
+	    fail "getopt error"kkkkk
+	    ;;
+    esac
+done
+	  
+test -d /backup || fail "/backup is not a directory"
+test -w /backup || fail "/backup is not writable directory"
+
+if [ -z "${type}" ]; then
+    # Determine backup type from filename
+    group_suffix=periodic
+    case ${0} in
+	*/monthly/*)
+	    type=monthly
+	    test -z "${age}" && age=$(expr 52 '*' 7)
+	    ;;
+	*/weekly/*)
+	    type=weekly
+	    test -z "${age}" && age=$(expr 4 '*' 7)
+	    ;;
+	*/daily/*)
+	    type=daily
+	    test -z "${age}" && age=7
+	    ;;
+	*/hourly/*)
+	    type=hourly
+	    test -z "${age}" && age=0
+	    ;;
+	*)
+	    fail "Unable to determine backup type from filename: ${0}"
+	    ;;
+    esac
+
+    # If we stay in /root we'll get warnings when find finishes
+    cd "/config/mmonit-${MMONIT_VERSION}" || fail "Unable to cd into /config/mmonit-${MMONIT_VERSION}"
+else
+    case ${type} in
+	upgrade*)
+	    group_suffix=upgrade
+	    ;;
+	*)
+	    ;;
+    esac
+fi
+
+# Parse the database URL
+database=$(expr "${MMONIT_DATABASE_URL}" : '\(.*\)://.*$')
+if [ -n "${database}" ]; then
+    suffix=sql
+    case "${database}" in
+	"mysql")
+	    test -f /etc/mysqldump.cnf || fail "/etc/mysqldump.cnf not found"
+	    ;;
+	*)
+	    fail "Unsupported database type: ${database}"
+	    ;;
+    esac
+else
+    database=sqlite3
+    suffix=sq3
+fi
+
+# Create backup filename and check that it exists
+backup_filename="/backup/mmonit_backup_$(date +'%FT%T')_${type}.${suffix}"
+test -e "${backup_filename}" && fail "${backup_filename} exists"
+tmpfile=$(mktemp -t ${progname}.XXXXXXXXXX)
+trap "rm -f ${backup_filename} ${tmpfile}" 1 2 3 13 15
+
+# Process backup per DB method
+case "${database}" in
+    "mysql")
+	database_name="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{path}' | cut -d '/' -f 2)"
+	for try in $(seq 1 10); do
+	    output=$(s6-setuidgid abc nice mariadb-dump \
+				  --defaults-file=/etc/mysqldump.cnf \
+				  ${group_suffix:+--defaults-group-suffix=$group_suffix} \
+				  -r "${backup_filename}" "${database_name}" 2>&1)
+	    test $? -eq 0 && break
+	    log "Backup failed (attempt ${try}): ${output}"
+	    sleep ${try}
+	done
+	;;
+    "postgresql://")
+	fail "Backing up PostgresQL is not yet supported"
+	;;
+    ""|"sqlite://")  # Assume sqlist
+	for try in $(seq 1 10); do
+	    output=$(s6-setuidgid abc nice sqlite3 db/mmonit.db ".backup ${backup_filename}" 2>&1)
+	    test $? -eq 0 && break
+	    log "Backup failed (attempt ${try}): ${output}"
+	    sleep ${try}
+	done
+	;;
+esac
+
+# Verify backups
+test -s "${backup_filename}" || backup_fail "ERROR: ${backup_filename} not created or empty"
+case "${database}" in
+    "mysql")
+	n_lines=$(wc -l ${backup_filename})
+	n_lines="${n_lines%% *}"
+	test ${n_lines} -gt 3 || backup_fail "Backup verification failed: only ${n_lines} lines!"
+	;;
+    "postgresql")
+	fail "Backing up PostgresQL is not yet supported"
+	;;
+    "sqlite")  # Assume sqlist
+	s6-setuidgid abc sqlite3 "${backup_filename}" .dump > "${tmpfile}"
+	test $? -ne 0 && backup_fail "Backup verification failed"
+	n_lines=$(wc -l "${tmpfile}")
+	n_lines="${n_lines%% *}"
+	rm -f "${tmpfile}"
+	test ${n_lines} -gt 3 || backup_fail "Backup verification failed: only ${n_lines} lines!"
+	;;
+esac
+log "${backup_filename} created and verified"
+echo "${backup_filename}" > /config/.last_backup
+
+# Clean up old backups
+if [ -n "${age}" ]; then
+    output=$(s6-setuidgid abc find /backup -name \*_${type}.* -mtime +${age} -delete -print 2>&1)
+    test $? -ne 0 && fail "Cleaning old backups older than ${age}: ${output}"
+    test -n "${output}" && log "Cleaned older than ${age}: ${output%%$'\n'*}"
+fi
+
+exit 0

@@ -19,8 +19,14 @@ print_vars init-mmonit-upgrade
 
 do_upgrade () {
     echo "Upgrading from ${1} to ${2}"
-    /config/mmonit-${2}/upgrade/upgrade -d -p /config/mmonit-${1} &&
+    /config/mmonit-${2}/upgrade/upgrade -d -p /config/mmonit-${1}
+    if [ $? -eq 0 ]; then
+	echo "Upgrade from ${1} to ${2} succeeded"
 	echo ${2} > /config/version
+    else
+	echo "Upgrade from ${1} to ${2} failed"
+	exit $?
+    fi
 }
 
 # load env file if it exists

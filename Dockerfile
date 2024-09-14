@@ -14,6 +14,7 @@ ENV \
         MMONIT_LICENSE_KEY= \
         MMONIT_LIMIT_FD=4096 \
         MMONIT_TLS_VERSION= \
+        S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
         TZ=UTC
 
 WORKDIR /opt

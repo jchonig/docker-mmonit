@@ -29,6 +29,8 @@ echo "*** install utilities needed ****" && \
 # Add configuration files
 COPY root /
 
+HEALTHCHECK --start-period=120s CMD /usr/local/sbin/healthcheck
+
 EXPOSE 8080
 
 VOLUME /config

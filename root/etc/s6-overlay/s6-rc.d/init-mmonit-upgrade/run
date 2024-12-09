@@ -73,7 +73,7 @@ if [ -e /config/version ]; then
 	    echo ${variant} > /config/.variant
 	else
 	    test -n "${restore}" && mv "/config/mmonit-${old_version}-${old_variant}" "/config/mmonit-${old_version}"
-	    test -n "${last_backup}" && /usr/local/bin/mmonit_restore "${last_backup}"
+	    test -n "${last_backup}" && /usr/local/sbin/mmonit_restore "${last_backup}"
 	    upgrade_failed "Upgrade script failed, see /config/${MMONIT_VERSION}/logs/upgrade-${old_version}-${MMONIT_VERSION}.log"
 	fi
     fi

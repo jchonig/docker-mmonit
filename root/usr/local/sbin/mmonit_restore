@@ -18,7 +18,7 @@ test -f "${backup_filename}" || fail "${backup_filename} does not exist or is no
 
 database_name="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{path}' | cut -d '/' -f 2)"
 
-echo "${progname}: Attempting from ${backup_filename}"
+echo "${progname}: Attempting restore from ${backup_filename}"
 case ${backup_filename} in
     *.sql)
 	s6-setuidgid abc mariadb --defaults-file=/etc/mysqldump.cnf "${database_name}" < "${backup_filename}"

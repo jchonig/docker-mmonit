@@ -29,7 +29,7 @@ echo "*** install utilities needed ****" && \
 # Add configuration files
 COPY root /
 
-HEALTHCHECK --start-period=120s CMD /usr/local/sbin/healthcheck
+HEALTHCHECK --start-period=300s CMD /usr/local/sbin/healthcheck
 
 EXPOSE 8080
 

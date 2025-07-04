@@ -109,6 +109,13 @@ case "${database}" in
     "mysql")
 	database_name="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{path}' | cut -d '/' -f 2)"
 	for try in $(seq 1 10); do
+	    # Ensure mariadb-dump is installed
+	    which mariadb-dump > /dev/null
+	    if [ $? -ne 0 ]; then
+		output=$(apk add -Uq mariadb-client 2>&1)
+		log "Installing mariadb-dump failed (attempt ${try}): ${output}"
+		sleep $((${try}*60))
+	    fi
 	    output=$(s6-setuidgid abc nice mariadb-dump \
 				  --defaults-file=/etc/mysqldump.cnf \
 				  ${group_suffix:+--defaults-group-suffix=$group_suffix} \

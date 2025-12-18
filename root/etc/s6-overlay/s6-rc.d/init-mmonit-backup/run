@@ -12,7 +12,7 @@ print_vars () {
     echo "    TZ=${TZ}"
     for var in "${!MMONIT_@}"; do
 	printf '    %s=%s\n' "$var" "${!var}"
-    done    
+    done
 }
 
 print_vars init-mmonit-backup
@@ -20,7 +20,8 @@ print_vars init-mmonit-backup
 if [ -d /backup ]; then
     echo "Configuring backps"
 
-    STATS_TABLES="statistics_string \
+    STATS_TABLES="events \
+        statistics_string \
     	statistics_int \
 	10statistics_llong \
 	statistics_float \
@@ -61,14 +62,19 @@ socket = ${database_socket}
 
 [mariadb-dump]
 single-transaction = TRUE
+quick = TRUE
+lock-tables = FALSE
+no-tablespaces = TRUE
 
 [mariadb-dump_upgrade]
 add-drop-database = TRUE
+
+[mariadb-dump_periodic]
+max-allowed-packet = 64M
+net-buffer-length = 16384
 EndOfDocument
 		    case ${MMONIT_DATABASE_BACKUP_STATS} in
 			no)
-			    echo
-			    echo "[mariadb-dump_periodic]"
 			    for table in ${STATS_TABLES}; do
 				echo "ignore-table-data = ${database_name}.${table}"
 			    done

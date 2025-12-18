@@ -40,7 +40,7 @@ while true; do
 	    ;;
     esac
 done
-	  
+
 test -d /backup || fail "/backup is not a directory"
 test -w /backup || fail "/backup is not writable directory"
 
@@ -116,7 +116,15 @@ case "${database}" in
 		log "Installing mariadb-dump failed (attempt ${try}): ${output}"
 		sleep $((${try}*60))
 	    fi
-	    output=$(s6-setuidgid abc nice mariadb-dump \
+	    case ${group_suffix} in
+		"periodic")
+		    nice="nice -n 19 ionice -c 3"
+		    ;;
+		*)
+		    nice="nice"
+		    ;;
+	    esac
+	    output=$(s6-setuidgid abc ${nice} mariadb-dump \
 				  --defaults-file=/etc/mysqldump.cnf \
 				  ${group_suffix:+--defaults-group-suffix=$group_suffix} \
 				  -r "${backup_filename}" "${database_name}" 2>&1)

@@ -1,7 +1,7 @@
 # docker-mmonit
 A container running [M/Monit](https://mmonit.com).
 
-Image hosted at: `ghcr.io/ghcr.io/jchonig/mmonit`
+Image hosted at: `ghcr.io/jchonig/mmonit`
 
 # Usage
 

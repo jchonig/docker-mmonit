@@ -1,6 +1,8 @@
 # docker-mmonit
 A container running [M/Monit](https://mmonit.com).
 
+Image hosted at: `ghcr.io/ghcr.io/jchonig/mmonit`
+
 # Usage
 
 ## docker
@@ -17,7 +19,7 @@ docker create \
   -v </path/to/appdata/config>:/config \
   -v </path/to/backupdir>:/backup \
   --restart unless-stopped \
-  jchonig/mmonit
+  ghcr.io/jchonig/mmonit
 ```
 
 ### docker-compose
@@ -29,7 +31,7 @@ Compatible with docker-compose v2 schemas.
 version: "2"
 services:
   monit:
-    image: jchonig/mmonit
+    image: ghcr.io/jchonig/mmonit
     container_name: mmonit
     environment:
       - PUID=1000

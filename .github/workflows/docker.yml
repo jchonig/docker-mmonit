@@ -43,6 +43,13 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Get latest M/Monit version
+        id: mmonit
+        run: |
+          VERSION=$(curl -s https://mmonit.com/download/ | grep -oE 'mmonit-[0-9]+\.[0-9]+\.[0-9]+' | head -1 | sed 's/mmonit-//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building M/Monit version $VERSION"
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -50,3 +57,4 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: mmonit_version=${{ steps.mmonit.outputs.version }}

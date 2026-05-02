@@ -34,6 +34,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Get M/Monit version
+        id: mmonit
+        run: |
+          VERSION=$(cat VERSION)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building M/Monit version $VERSION"
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -42,15 +49,10 @@ jobs:
             ghcr.io/jchonig/mmonit
             jchonig/mmonit
           tags: |
-            type=ref,event=branch
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Get latest M/Monit version
-        id: mmonit
-        run: |
-          VERSION=$(curl -s https://mmonit.com/download/ | grep -oE 'mmonit-[0-9]+\.[0-9]+\.[0-9]+' | head -1 | sed 's/mmonit-//')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building M/Monit version $VERSION"
+            type=raw,value=${{ steps.mmonit.outputs.version }},enable=${{ github.ref == 'refs/heads/master' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+            type=raw,value=backup-${{ steps.mmonit.outputs.version }},enable=${{ github.ref == 'refs/heads/backup' }}
+            type=ref,event=branch,enable=${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/backup' }}
 
       - name: Build and push
         uses: docker/build-push-action@v6

@@ -6,6 +6,7 @@ on:
   pull_request:
   schedule:
     - cron: '0 10 * * 0'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -62,3 +63,11 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: mmonit_version=${{ steps.mmonit.outputs.version }}
+
+  keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: peter-evans/workflow-keepalive@v3

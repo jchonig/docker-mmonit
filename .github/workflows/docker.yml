@@ -66,8 +66,6 @@ jobs:
 
   keepalive:
     if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
+    uses: jchonig/workflows/.github/workflows/keepalive.yml@main
     permissions:
       actions: write
-    steps:
-      - uses: peter-evans/workflow-keepalive@v3

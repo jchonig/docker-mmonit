@@ -124,11 +124,18 @@ case "${database}" in
 		    nice="nice"
 		    ;;
 	    esac
-	    output=$(s6-setuidgid abc ${nice} mariadb-dump \
+	    output=$(timeout "${MMONIT_BACKUP_TIMEOUT:-1800}" s6-setuidgid abc ${nice} mariadb-dump \
 				  --defaults-file=/etc/mysqldump.cnf \
 				  ${group_suffix:+--defaults-group-suffix=$group_suffix} \
 				  -r "${backup_filename}" "${database_name}" 2>&1)
-	    test $? -eq 0 && break
+	    status=$?
+	    test ${status} -eq 0 && break
+	    # A killed dump leaves a partial file, and retrying would only stack up more
+	    case ${status} in
+		124|137|143)
+		    backup_fail "ERROR: ${backup_filename} timed out after ${MMONIT_BACKUP_TIMEOUT:-1800} seconds"
+		    ;;
+	    esac
 	    log "Backup failed (attempt ${try}): ${output}"
 	    sleep ${try}
 	done

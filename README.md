@@ -1,13 +1,14 @@
 # docker-mmonit
+
 A container running [M/Monit](https://mmonit.com).
 
 Image hosted at: `ghcr.io/ghcr.io/jchonig/mmonit`
 
-# Usage
+## Usage
 
 ## docker
 
-```
+```sh
 docker create \
   --name=mmonit \
   -e PUID=1000 \
@@ -26,7 +27,7 @@ docker create \
 
 Compatible with docker-compose v2 schemas.
 
-```
+```yaml
 ---
 version: "2"
 services:
@@ -47,7 +48,7 @@ services:
     restart: unless-stopped
 ```
 
-# Parameters
+## Parameters
 
 ## Ports (--expose)
 
@@ -57,18 +58,19 @@ services:
 
 ## Environment Variables (-e)
 
-| Env                          | Function                                                            |
-|------------------------------|---------------------------------------------------------------------|
-| PUID=1000                    | for UserID - see below for explanation                              |
-| PGID=1000                    | for GroupID - see below for explanation                             |
-| TZ=UTC                       | Specify a timezone to use EG UTC                                    |
-| MMONIT_VERSION               | The version of M\/Monit to build                                    |
-| MMONIT_LICENSE_OWNER         | Owner name from M\/Monit license                                    |
-| MMONIT_LICENSE_KEY           | Text of the M/Monit license                                         |
-| MMONIT_DATABASE_BACKUP_STATS | "yes" or "no" to backup statistics tables (which can be very large) |
-| MMONIT_DATABASE_URL          | URL to access the M\/Monit database                                 |
-| MMONIT_LIMIT_FD              | Override the default of 4096                                        |
-| MMONIT_TLS_VERSION           | Override the TLS version                                            |
+| Env                          | Function                                  |
+|------------------------------|-------------------------------------------|
+| PUID=1000                    | UserID, see below                         |
+| PGID=1000                    | GroupID, see below                        |
+| TZ=UTC                       | Timezone to use, e.g. UTC                 |
+| MMONIT_VERSION               | M/Monit version to build                  |
+| MMONIT_LICENSE_OWNER         | Owner name from M/Monit license           |
+| MMONIT_LICENSE_KEY           | Text of the M/Monit license               |
+| MMONIT_DATABASE_BACKUP_STATS | "no" skips statistics tables in backups   |
+| MMONIT_BACKUP_TIMEOUT        | Seconds before a dump fails (1800)        |
+| MMONIT_DATABASE_URL          | URL to access the M/Monit database        |
+| MMONIT_LIMIT_FD              | Override the default of 4096              |
+| MMONIT_TLS_VERSION           | Override the TLS version                  |
 
 ## Volume Mappings (-v)
 
@@ -77,16 +79,16 @@ services:
 | /config | All the config files reside here            |
 | /backup | Optional location to store periodic backups |
 
-# Application Setup
+## Application Setup
 
-  * Environment variables can also be passed in a file named `env` in
-    the `config` directory. This file is sourced by the shell.
-  * The M/Monit configuration directories are extracted into a
-    directory in /config named monit-${MONIT_VERSION} unless it
-    already exists. 
-  * It is recommended to use nginx as an SSL proxy for security.
+* Environment variables can also be passed in a file named `env` in
+  the `config` directory. This file is sourced by the shell.
+* The M/Monit configuration directories are extracted into a
+  directory in /config named monit-${MONIT_VERSION} unless it
+  already exists.
+* It is recommended to use nginx as an SSL proxy for security.
 
-# Backups
+## Backups
 
 If the /backup volume is mounted, periodic (hourly, daily, weekly and
 monthly) backups will be created with a retention of (25 hours, 8
@@ -106,19 +108,19 @@ Backups can be run by hand by running `/usr/local/bin/mmonit_backup`.
 Specify a type with `--type FOO` to separate them from periodic
 backups.
 
-# Upgrading
+## Upgrading
 
-  * The container will automatically run the M/Monit upgrade script if
-    */config/version* indicates an older version was last run.
-  * Old versions /config/mmonit-${MMONIT_VERSION} will need to be
-    manually removed at this time.
-  * If an upgrade fails, /config/.upgrade_failed will have contain the
-    reason for the failure and M/Monit will not start until the issue
-    is fixed and the file is removed.
-  * If backups are configured, a full backup of the database will be
-    done before the upgrade starts.  If the upgrade fails, the
-    database will be restored from the backup.
+* The container will automatically run the M/Monit upgrade script if
+  */config/version* indicates an older version was last run.
+* Old versions /config/mmonit-${MMONIT_VERSION} will need to be
+  manually removed at this time.
+* If an upgrade fails, /config/.upgrade_failed will have contain the
+  reason for the failure and M/Monit will not start until the issue
+  is fixed and the file is removed.
+* If backups are configured, a full backup of the database will be
+  done before the upgrade starts.  If the upgrade fails, the
+  database will be restored from the backup.
 
-# More information
+## More information
 
 See the [Wiki](https://github.com/jchonig/docker-mmonit/wiki).

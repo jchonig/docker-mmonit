@@ -11,6 +11,7 @@ print_vars () {
     echo "    PGID=${PGID}"
     echo "    TZ=${TZ}"
     for var in "${!MMONIT_@}"; do
+	case "$var" in MMONIT_LICENSE_KEY) continue ;; esac
 	printf '    %s=%s\n' "$var" "${!var}"
     done
 }

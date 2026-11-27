@@ -1,4 +1,4 @@
-From lsiobase/alpine:3.20
+From lsiobase/alpine:3.24
 
 ARG mmonit_version
 ARG mmonit_os=alpine
@@ -14,21 +14,24 @@ ENV \
         MMONIT_LICENSE_OWNER= \
         MMONIT_LICENSE_KEY= \
         MMONIT_LIMIT_FD=4096 \
+        MMONIT_UPGRADE_TIMEOUT=3600 \
         MMONIT_TLS_VERSION= \
         S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
         TZ=UTC
 
 WORKDIR /opt
 
+# Add configuration files
+COPY root /
+
 # Set up
 RUN \
-echo "*** install utilities needed ****" && \
+	echo "*** fix directory modes copied from the build context ***" && \
+	chmod go+rx /etc /etc/logrotate.d /etc/periodic /etc/s6-overlay && \
+	echo "*** install utilities needed ****" && \
         apk add --no-cache dpkg logrotate rsync trurl xmlstarlet && \
 	echo "*** install M/Monit ***" && \
 	curl -o - "${mmonit_url}" | tar -xzf -
-
-# Add configuration files
-COPY root /
 
 HEALTHCHECK --start-period=300s CMD /usr/local/sbin/healthcheck
 

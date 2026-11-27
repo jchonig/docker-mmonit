@@ -13,7 +13,7 @@ print_vars () {
     for var in "${!MMONIT_@}"; do
 	case "$var" in MMONIT_LICENSE_KEY) continue ;; esac
 	printf '    %s=%s\n' "$var" "${!var}"
-    done    
+    done
 }
 
 print_vars init-mmonit-upgrade
@@ -67,16 +67,17 @@ if [ -e /config/version ]; then
 	fi
 	rsync -avq /opt/mmonit-${MMONIT_VERSION} /config/ || upgrade_failed "Copying /opt/mmonit-${MMONIT_VERSION} /config"
 	echo "Upgrading from ${old_version}-${old_variant} to ${MMONIT_VERSION}"
-	/config/mmonit-${MMONIT_VERSION}/upgrade/upgrade -d -p /config/mmonit-${old_version}-${old_variant} > /config/mmonit-${MMONIT_VERSION}/logs/upgrade-${old_version}-${MMONIT_VERSION}.log 2>&1
-	if [ $? -eq 0 ]; then
+	/config/mmonit-${MMONIT_VERSION}/upgrade/upgrade -d -t "${MMONIT_UPGRADE_TIMEOUT:-3600}" -p /config/mmonit-${old_version}-${old_variant} > /config/mmonit-${MMONIT_VERSION}/logs/upgrade-${old_version}-${MMONIT_VERSION}.log 2>&1
+	rc=$?
+	if [ ${rc} -eq 0 ]; then
 	    echo "Upgrade from ${old_version}-${old_variant} to ${MMONIT_VERSION} succeeded"
 	    echo ${MMONIT_VERSION} > /config/version
 	    echo ${variant} > /config/.variant
 	else
-	    echo "Upgrade from ${old_version}-${old_variant} to ${MMONIT_VERSION} failed with $?"
+	    echo "Upgrade from ${old_version}-${old_variant} to ${MMONIT_VERSION} failed with ${rc}"
 	    test -n "${restore}" && mv "/config/mmonit-${old_version}-${old_variant}" "/config/mmonit-${old_version}"
 	    test -n "${last_backup}" && /usr/local/sbin/mmonit_restore "${last_backup}"
-	    upgrade_failed "Upgrade script failed, see /config/${MMONIT_VERSION}/logs/upgrade-${old_version}-${MMONIT_VERSION}.log"
+	    upgrade_failed "Upgrade script failed, see /config/mmonit-${MMONIT_VERSION}/logs/upgrade-${old_version}-${MMONIT_VERSION}.log"
 	fi
     fi
 else

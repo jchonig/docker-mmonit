@@ -1,0 +1,66 @@
+#!/usr/bin/with-contenv sh
+
+progname=$(basename "${0}")
+
+log () {
+    echo "$(date +'%F %T') ${*}" | tee -a /config/logs/backup.log
+}
+
+fail () {
+    log "${progname}: ${*}"
+    exit 1
+}
+
+usage="Usage: ${progname} [--dir MMONIT_DIR] <FILEPATH>"
+
+# The M/Monit installation whose SQLite database is restored
+mmonit_dir="/config/mmonit-${MMONIT_VERSION}"
+options=$(getopt -n "${progname}" -o "" -l dir: -- "$@") || fail "${usage}"
+eval set -- "${options}"
+while true; do
+    case "${1}" in
+	--dir)
+	    mmonit_dir="${2}"
+	    shift 2
+	    ;;
+	--)
+	    shift
+	    break
+	    ;;
+	*)
+	    fail "getopt error"
+	    ;;
+    esac
+done
+
+test $# -eq 1 || fail "${usage}"
+backup_filename="${1}"
+
+test -f "${backup_filename}" || fail "${backup_filename} does not exist or is not a file"
+
+test -n "${MMONIT_DATABASE_URL}" && database_name="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{path}' | cut -d '/' -f 2)"
+
+echo "${progname}: Attempting restore from ${backup_filename}"
+case ${backup_filename} in
+    *.sql)
+	s6-setuidgid abc mariadb --defaults-file=/etc/mysqldump.cnf "${database_name}" < "${backup_filename}"
+	;;
+    *.pgsql)
+	PGSERVICEFILE=/etc/pg_service.conf s6-setuidgid abc psql -X -q \
+		     -v ON_ERROR_STOP=1 --single-transaction \
+		     -d "service=mmonit" -f "${backup_filename}"
+	;;
+    *.sq3)
+	cd "${mmonit_dir}" || fail "Unable to cd into ${mmonit_dir}"
+	mv db/mmonit.db "db/mmonit.db.$(date +'%FT%T')" || fail "Unable to move ${mmonit_dir}/db/mmonit.db aside"
+	s6-setuidgid abc nice sqlite3 db/mmonit.db ".restore '${backup_filename}'"
+	;;
+    *)
+	fail "I don't know how to restore from ${backup_filename}"
+	;;
+esac
+rc=$?
+
+echo "${progname}: Restore from ${backup_filename} returned ${rc}"
+
+exit ${rc}

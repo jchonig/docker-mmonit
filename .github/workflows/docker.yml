@@ -43,8 +43,7 @@ jobs:
       tags: |
         type=raw,value=${{ needs.get-version.outputs.version }},enable=${{ github.ref == 'refs/heads/master' }}
         type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
-        type=raw,value=backup-${{ needs.get-version.outputs.version }},enable=${{ github.ref == 'refs/heads/backup' }}
-        type=ref,event=branch,enable=${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/backup' }}
+        type=ref,event=branch,enable=${{ github.ref != 'refs/heads/master' }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

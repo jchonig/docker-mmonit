@@ -126,7 +126,7 @@ case "${database}" in
 	    esac
 	    output=$(timeout "${MMONIT_BACKUP_TIMEOUT:-1800}" s6-setuidgid abc ${nice} mariadb-dump \
 				  --defaults-file=/etc/mysqldump.cnf \
-				  ${group_suffix:+--defaults-group-suffix=$group_suffix} \
+				  ${group_suffix:+--defaults-group-suffix=_${group_suffix}} \
 				  -r "${backup_filename}" "${database_name}" 2>&1)
 	    status=$?
 	    test ${status} -eq 0 && break
@@ -140,10 +140,10 @@ case "${database}" in
 	    sleep ${try}
 	done
 	;;
-    "postgresql://")
+    "postgresql")
 	fail "Backing up PostgresQL is not yet supported"
 	;;
-    ""|"sqlite://")  # Assume sqlist
+    "sqlite3")
 	for try in $(seq 1 10); do
 	    output=$(s6-setuidgid abc nice sqlite3 db/mmonit.db ".backup ${backup_filename}" 2>&1)
 	    test $? -eq 0 && break
@@ -164,7 +164,7 @@ case "${database}" in
     "postgresql")
 	fail "Backing up PostgresQL is not yet supported"
 	;;
-    "sqlite")  # Assume sqlist
+    "sqlite3")
 	s6-setuidgid abc sqlite3 "${backup_filename}" .dump > "${tmpfile}"
 	test $? -ne 0 && backup_fail "Backup verification failed"
 	n_lines=$(wc -l "${tmpfile}")

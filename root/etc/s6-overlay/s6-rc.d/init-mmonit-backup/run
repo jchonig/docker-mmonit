@@ -21,12 +21,14 @@ print_vars init-mmonit-backup
 if [ -d /backup ]; then
     echo "Configuring backps"
 
-    STATS_TABLES="events \
-        statistics_string \
-    	statistics_int \
-	10statistics_llong \
+    STATS_TABLES="event \
+	eventnotice \
+	statistics_string \
+	statistics_int \
+	statistics_llong \
 	statistics_float \
 	statistics_double \
+	statistics_aggregate_count \
 	statistics_aggregate_1m \
 	statistics_aggregate_2m \
 	statistics_aggregate_15m \

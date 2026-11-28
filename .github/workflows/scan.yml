@@ -1,0 +1,65 @@
+name: Vulnerability Scan
+
+# Scan the published image, with the database clients that
+# init-mmonit-backup installs at startup, for fixable vulnerabilities.
+# Results go to the repository's Security tab; the run fails when a
+# fixable HIGH or CRITICAL vulnerability is found, which a rebuild fixes.
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: [Dockerfile]
+
+env:
+  IMAGE: ghcr.io/jchonig/mmonit:latest
+  SCAN_IMAGE: mmonit-scan:local
+  TRIVY: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
+  # Keep in step with init-mmonit-backup
+  RUNTIME_PACKAGES: mariadb-client postgresql18-client sqlite
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Build the scan image
+        run: |
+          printf 'FROM %s\nRUN apk add --no-cache %s\n' "${IMAGE}" "${RUNTIME_PACKAGES}" |
+              docker build --platform linux/amd64 -t "${SCAN_IMAGE}" -
+
+      - name: Scan with Trivy
+        run: |
+          trivy () {
+              docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                     -v "${RUNNER_TEMP}/trivy:/root/.cache" -v "${PWD}:/out" \
+                     "${TRIVY}" image --quiet --scanners vuln --ignore-unfixed \
+                     --severity HIGH,CRITICAL "$@" "${SCAN_IMAGE}"
+          }
+          trivy --format sarif --output /out/trivy.sarif
+          trivy --format table --output /out/trivy.txt
+          cat trivy.txt
+          cat trivy.txt >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        with:
+          sarif_file: trivy.sarif
+          category: image
+
+      - name: Fail on fixable vulnerabilities
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                 -v "${RUNNER_TEMP}/trivy:/root/.cache" \
+                 "${TRIVY}" image --quiet --scanners vuln --ignore-unfixed \
+                 --severity HIGH,CRITICAL --exit-code 1 "${SCAN_IMAGE}" > /dev/null
+
+  keepalive:
+    if: github.event_name == 'schedule'
+    uses: jchonig/workflows/.github/workflows/keepalive.yml@main
+    permissions:
+      actions: write

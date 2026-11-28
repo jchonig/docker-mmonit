@@ -4,10 +4,9 @@ A container running [M/Monit](https://mmonit.com).
 
 Image hosted at: `ghcr.io/jchonig/mmonit`
 
-The `backup-*` tags are deprecated. Backups are now in the main image,
-so use the version tags (for example `4.4.0`) or `latest`.
-`backup-4.4.0` points to the same image as `4.4.0`, and no more
-`backup-*` tags will be built.
+The `backup-*` tags are no longer published, and `backup-4.4.0` has
+been removed. Backups are now in the main image, so use the version
+tags (for example `4.4.0`) or `latest`.
 
 ## Usage
 

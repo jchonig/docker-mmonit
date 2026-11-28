@@ -20,6 +20,7 @@ docker create \
   -v </path/to/appdata/config>:/config \
   -v </path/to/backupdir>:/backup \
   --restart unless-stopped \
+  --stop-timeout 120 \
   ghcr.io/jchonig/mmonit
 ```
 
@@ -46,6 +47,7 @@ services:
     expose:
       - 8080
     restart: unless-stopped
+    stop_grace_period: 2m
 ```
 
 ## Parameters
@@ -70,6 +72,7 @@ services:
 | MMONIT_BACKUP_TIMEOUT        | Seconds before a dump fails (1800)        |
 | MMONIT_DATABASE_URL          | URL to access the M/Monit database        |
 | MMONIT_LIMIT_FD              | Override the default of 4096              |
+| MMONIT_UPGRADE_TIMEOUT       | Seconds before an upgrade fails (3600)    |
 | MMONIT_TLS_VERSION           | Override the TLS version                  |
 
 ## Volume Mappings (-v)
@@ -87,6 +90,29 @@ services:
   directory in /config named monit-${MONIT_VERSION} unless it
   already exists.
 * It is recommended to use nginx as an SSL proxy for security.
+  Since M/Monit 4.4.0 the proxy must pass HTTP 401 responses
+  through unchanged (don't set `proxy_intercept_errors` in nginx or
+  `ProxyErrorOverride` in Apache), and a proxy that rewrites the
+  `Host` header must set `X-Forwarded-Host`:
+
+  ```nginx
+  proxy_set_header X-Forwarded-Host $http_host;
+  ```
+
+  M/Monit 4.4.0 builds redirect URLs from the `Host` header alone, so
+  a proxy that rewrites `Host` (for example to `localhost`) must also
+  rewrite `Location` headers back to the browser's address.  4.3.4
+  includes the port (`http://localhost:8080/...`) and 4.4.0 leaves it
+  out (`http://localhost/...`).  With Caddy:
+
+  ```caddyfile
+  header_down Location ^https?://localhost(?::8080)?(/.*)?$ https://{host}$1
+  ```
+
+* M/Monit can take a while to save statistics and pending alerts
+  when it stops, so give the container two minutes to stop
+  (`--stop-timeout 120` or `stop_grace_period: 2m`) instead of
+  Docker's default of 10 seconds.
 
 ## Backups
 
@@ -117,6 +143,11 @@ backups.
 * If an upgrade fails, /config/.upgrade_failed will have contain the
   reason for the failure and M/Monit will not start until the issue
   is fixed and the file is removed.
+* The upgrade fails if it takes longer than `MMONIT_UPGRADE_TIMEOUT`
+  seconds.  The 4.4.0 upgrade converts MySQL/MariaDB databases to
+  utf8mb4, which can take a long time on a large database and needs
+  free space in the database server's temporary directory
+  (`innodb_tmpdir`, or `tmpdir` if that is unset).
 * If backups are configured, a full backup of the database will be
   done before the upgrade starts.  If the upgrade fails, the
   database will be restored from the backup.

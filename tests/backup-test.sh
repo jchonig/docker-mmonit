@@ -8,7 +8,10 @@
 # M/Monit itself is not started: without a license it fetches a trial
 # license from mmonit.com, which is throttled.  The test image is the
 # image under test with the mmonit service removed, so the init
-# scripts that configure backups still run.
+# scripts that configure backups still run.  Cron is removed too, and
+# Docker's health check is turned off, so that neither a periodic
+# backup nor a health check runs while the test checks /backup or /tmp;
+# the test runs both itself.
 
 set -u
 
@@ -87,7 +90,7 @@ schema="/opt/mmonit-${mmonit_version}/db/mmonit-schema.${db_type%3}"
 
 docker build -q ${platform} -t "${test_image}" - > /dev/null <<EOF || die "Unable to build ${test_image}"
 FROM ${image}
-RUN rm /etc/s6-overlay/s6-rc.d/user/contents.d/mmonit
+RUN rm /etc/s6-overlay/s6-rc.d/user/contents.d/mmonit /etc/s6-overlay/s6-rc.d/user/contents.d/svc-cron
 EOF
 
 docker network create "${name}" > /dev/null || die "Unable to create network ${name}"
@@ -155,7 +158,7 @@ EOF
 	;;
 esac
 
-docker run -d ${platform} --name "${mm}" --network "${name}" \
+docker run -d ${platform} --name "${mm}" --network "${name}" --no-healthcheck \
        -e MMONIT_DATABASE_URL="${database_url}" \
        -e MMONIT_DATABASE_BACKUP_STATS=no \
        --tmpfs /backup:mode=1777 \
@@ -260,13 +263,16 @@ check "restore upgrade backup" \
 check "restore brought back users" equal "$(count users)" "${users}"
 check "restore brought back statistics" equal "$(count statistics_aggregate_1m)" 1
 
-check "backups and restores leave no temporary files" \
-      equal "$(docker exec "${mm}" sh -c 'ls -A /tmp | wc -l' | tr -d ' ')" 0
+# Print the entries in /tmp, and /cookie if the healthcheck left one
+leftovers () {
+    docker exec "${mm}" sh -c 'ls -A /tmp; test -e /cookie && echo /cookie'
+}
+
+check "backups and restores leave no temporary files" equal "$(leftovers)" ""
 
 # The healthcheck fails while M/Monit isn't running and leaves nothing behind
 check "healthcheck fails without M/Monit" sh -c "! docker exec '${mm}' /usr/local/sbin/healthcheck 2>/dev/null"
-check "healthcheck leaves no temporary files" \
-      equal "$(docker exec "${mm}" sh -c 'ls -A /tmp | wc -l; test -e /cookie && echo /cookie' | tr -d ' ')" 0
+check "healthcheck leaves no temporary files" equal "$(leftovers)" ""
 
 if [ ${failures} -ne 0 ]; then
     echo "${db_type}: ${failures} check(s) failed"

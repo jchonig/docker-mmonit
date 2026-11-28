@@ -22,8 +22,20 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building M/Monit version $VERSION"
 
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite3, mysql, postgresql]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Test backups and restores with ${{ matrix.database }}
+        run: make test-backup-${{ matrix.database }}
+
   build:
-    needs: get-version
+    needs: [get-version, test]
     uses: jchonig/workflows/.github/workflows/docker-build.yml@main
     with:
       image_name: mmonit

@@ -2,7 +2,7 @@
 
 A container running [M/Monit](https://mmonit.com).
 
-Image hosted at: `ghcr.io/ghcr.io/jchonig/mmonit`
+Image hosted at: `ghcr.io/jchonig/mmonit`
 
 ## Usage
 
@@ -68,7 +68,7 @@ services:
 | MMONIT_VERSION               | M/Monit version to build                  |
 | MMONIT_LICENSE_OWNER         | Owner name from M/Monit license           |
 | MMONIT_LICENSE_KEY           | Text of the M/Monit license               |
-| MMONIT_DATABASE_BACKUP_STATS | "no" skips statistics tables in backups   |
+| MMONIT_DATABASE_BACKUP_STATS | "no" leaves statistics out, see Backups   |
 | MMONIT_BACKUP_TIMEOUT        | Seconds before a dump fails (1800)        |
 | MMONIT_DATABASE_URL          | URL to access the M/Monit database        |
 | MMONIT_LIMIT_FD              | Override the default of 4096              |
@@ -117,22 +117,54 @@ services:
 ## Backups
 
 If the /backup volume is mounted, periodic (hourly, daily, weekly and
-monthly) backups will be created with a retention of (25 hours, 8
-days, 5 weeks, and 12 months respectively). The onwership will be the
+monthly) backups will be created with a retention of (24 hours, 8
+days, 5 weeks, and 12 months respectively). The ownership will be the
 container PUID and PGID.
+
+When /backup is mounted, the container installs the database client
+(`mariadb-client`, `postgresql18-client` or `sqlite`) with `apk` each
+time it starts, so it needs access to the Alpine package repositories
+at startup.
 
 Logs will be stored in /config/logs/backup.log and rotated monthly.
 
-This has been tested with sqlite3 and mariadb.  Backups of postgresql
-are not yet supported.
+Backups work with each database M/Monit supports, chosen by the
+scheme of `MMONIT_DATABASE_URL`:
 
-Also see `MMONIT_DATABASE_BACKUP_STATS` when using mariadb.  On a
-slower system, dumping all the statistics can cause M/Monit to drop
-data and cause problems.
+| Database   | Backup file | Made with                         |
+|------------|-------------|-----------------------------------|
+| SQLite     | `*.sq3`     | `sqlite3 .backup`                 |
+| MySQL      | `*.sql`     | `mariadb-dump`                    |
+| PostgreSQL | `*.pgsql`   | `pg_dump --clean`, plain SQL      |
 
-Backups can be run by hand by running `/usr/local/bin/mmonit_backup`.
+The PostgreSQL client is version 18, which can dump servers back to
+PostgreSQL 9.2.
+
+Also see `MMONIT_DATABASE_BACKUP_STATS` when using MySQL or
+PostgreSQL.  On a slower system, dumping all the statistics can
+cause M/Monit to drop data and cause problems.  When it is `no`,
+periodic backups keep the statistics and event tables' definitions
+but not their rows; the backup taken before an upgrade always
+includes everything.  SQLite backups always copy the whole database.
+
+Backups can be run by hand by running `/usr/local/sbin/mmonit_backup`.
 Specify a type with `--type FOO` to separate them from periodic
-backups.
+backups.  For SQLite, run it from the M/Monit directory
+(`/config/mmonit-${MMONIT_VERSION}`).
+
+Stop M/Monit before restoring a backup with
+`/usr/local/sbin/mmonit_restore FILE`.  For SQLite, `--dir DIR`
+names the M/Monit directory to restore into; it defaults to
+`/config/mmonit-${MMONIT_VERSION}`.
+
+## Testing
+
+`make test-backups` builds the image and tests backups and restores
+against SQLite, MariaDB and PostgreSQL in containers;
+`make test-backup-sqlite3`, `make test-backup-mysql` and
+`make test-backup-postgresql` test one.  M/Monit itself is not
+started, so the tests don't need a license.  CI runs them for every
+push and pull request.
 
 ## Upgrading
 
@@ -140,7 +172,7 @@ backups.
   */config/version* indicates an older version was last run.
 * Old versions /config/mmonit-${MMONIT_VERSION} will need to be
   manually removed at this time.
-* If an upgrade fails, /config/.upgrade_failed will have contain the
+* If an upgrade fails, /config/.upgrade_failed will contain the
   reason for the failure and M/Monit will not start until the issue
   is fixed and the file is removed.
 * The upgrade fails if it takes longer than `MMONIT_UPGRADE_TIMEOUT`

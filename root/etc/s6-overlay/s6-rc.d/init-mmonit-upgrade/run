@@ -76,7 +76,7 @@ if [ -e /config/version ]; then
 	else
 	    echo "Upgrade from ${old_version}-${old_variant} to ${MMONIT_VERSION} failed with ${rc}"
 	    test -n "${restore}" && mv "/config/mmonit-${old_version}-${old_variant}" "/config/mmonit-${old_version}"
-	    test -n "${last_backup}" && /usr/local/sbin/mmonit_restore "${last_backup}"
+	    test -n "${last_backup}" && /usr/local/sbin/mmonit_restore --dir "/config/mmonit-${old_version}" "${last_backup}"
 	    upgrade_failed "Upgrade script failed, see /config/mmonit-${MMONIT_VERSION}/logs/upgrade-${old_version}-${MMONIT_VERSION}.log"
 	fi
     fi

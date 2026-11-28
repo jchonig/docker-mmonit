@@ -89,6 +89,10 @@ if [ -n "${database}" ]; then
 	"mysql")
 	    test -f /etc/mysqldump.cnf || fail "/etc/mysqldump.cnf not found"
 	    ;;
+	"postgresql")
+	    test -f /etc/pg_service.conf || fail "/etc/pg_service.conf not found"
+	    suffix=pgsql
+	    ;;
 	*)
 	    fail "Unsupported database type: ${database}"
 	    ;;
@@ -101,8 +105,8 @@ fi
 # Create backup filename and check that it exists
 backup_filename="/backup/mmonit_backup_$(date +'%FT%T')_${type}.${suffix}"
 test -e "${backup_filename}" && fail "${backup_filename} exists"
-tmpfile=$(mktemp -t ${progname}.XXXXXXXXXX)
-trap "rm -f ${backup_filename} ${tmpfile}" 1 2 3 13 15
+tmpfile=
+trap 'rm -f "${backup_filename}" ${tmpfile:+"${tmpfile}"}; exit 1' 1 2 3 13 15
 
 # Process backup per DB method
 case "${database}" in
@@ -141,7 +145,34 @@ case "${database}" in
 	done
 	;;
     "postgresql")
-	fail "Backing up PostgresQL is not yet supported"
+	case ${group_suffix} in
+	    "periodic")
+		nice="nice -n 19 ionice -c 3"
+		options=$(cat /etc/pg_dump_periodic.options 2>/dev/null)
+		;;
+	    *)
+		nice="nice"
+		options=
+		;;
+	esac
+	for try in $(seq 1 10); do
+	    # --clean lets a dump be restored over the existing database
+	    output=$(PGSERVICEFILE=/etc/pg_service.conf timeout "${MMONIT_BACKUP_TIMEOUT:-1800}" \
+				 s6-setuidgid abc ${nice} pg_dump \
+				 --clean --if-exists --no-owner --no-privileges \
+				 ${options} \
+				 -f "${backup_filename}" "service=mmonit" 2>&1)
+	    status=$?
+	    test ${status} -eq 0 && break
+	    # A killed dump leaves a partial file, and retrying would only stack up more
+	    case ${status} in
+		124|137|143)
+		    backup_fail "ERROR: ${backup_filename} timed out after ${MMONIT_BACKUP_TIMEOUT:-1800} seconds"
+		    ;;
+	    esac
+	    log "Backup failed (attempt ${try}): ${output}"
+	    sleep ${try}
+	done
 	;;
     "sqlite3")
 	for try in $(seq 1 10); do
@@ -162,9 +193,11 @@ case "${database}" in
 	test ${n_lines} -gt 3 || backup_fail "Backup verification failed: only ${n_lines} lines!"
 	;;
     "postgresql")
-	fail "Backing up PostgresQL is not yet supported"
+	tail -n 5 "${backup_filename}" | grep -q -- '-- PostgreSQL database dump complete' || \
+	    backup_fail "Backup verification failed: ${backup_filename} is incomplete"
 	;;
     "sqlite3")
+	tmpfile=$(mktemp -t ${progname}.XXXXXXXXXX) || backup_fail "Unable to create a temporary file"
 	s6-setuidgid abc sqlite3 "${backup_filename}" .dump > "${tmpfile}"
 	test $? -ne 0 && backup_fail "Backup verification failed"
 	n_lines=$(wc -l "${tmpfile}")

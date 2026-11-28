@@ -87,6 +87,45 @@ EndOfDocument
 		    esac
 		)  > /etc/mysqldump.cnf
 		;;
+	    "postgresql")
+		apk add -Uq postgresql18-client 2>&1
+		database_name="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{path}' | cut -d '/' -f 2)"
+		database_user="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{user}')"
+		database_password="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{password}')"
+		database_host="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{host}')"
+		database_port="$(trurl --url "${MMONIT_DATABASE_URL}" --get '{port}')"
+		# pg_dump and psql read the connection from a service file
+		# and the password from a password file, so neither is on a
+		# command line
+		pgpass_field () {
+		    printf '%s' "${1}" | sed -e 's/[\\:]/\\&/g'
+		}
+		printf '%s:%s:%s:%s:%s\n' \
+		       "$(pgpass_field "${database_host}")" \
+		       "${database_port:-5432}" \
+		       "$(pgpass_field "${database_name}")" \
+		       "$(pgpass_field "${database_user}")" \
+		       "$(pgpass_field "${database_password}")" > /etc/mmonit.pgpass
+		chown abc:abc /etc/mmonit.pgpass
+		chmod 0600 /etc/mmonit.pgpass
+		cat > /etc/pg_service.conf <<EndOfDocument
+[mmonit]
+host=${database_host}
+port=${database_port:-5432}
+dbname=${database_name}
+user=${database_user}
+passfile=/etc/mmonit.pgpass
+EndOfDocument
+		case ${MMONIT_DATABASE_BACKUP_STATS} in
+		    no)
+			for table in ${STATS_TABLES}; do
+			    echo "--exclude-table-data=${table}"
+			done
+			;;
+		    *)
+			;;
+		esac > /etc/pg_dump_periodic.options
+		;;
 	    *)
 		echo "Backups of ${database} not yet supported"
 		;;

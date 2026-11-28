@@ -8,7 +8,22 @@ on:
     - cron: '0 10 * * 0'
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite3, mysql, postgresql]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test backups and restores with ${{ matrix.database }}
+        run: make test-backup-${{ matrix.database }}
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

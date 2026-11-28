@@ -7,7 +7,7 @@ fail () {
 
 tmpdir=$(mktemp -d -t healthcheck.XXXXXXXXXX) || fail "mktemp failed"
 trap 'rm -rf "${tmpdir}"' 0
-trap 'exit 1' 1 2 3 13 15
+trap 'exit 1' HUP INT QUIT PIPE TERM
 
 curl -s --max-time 10 -o /dev/null --fail -c "${tmpdir}/cookie" http://127.0.0.1:8080/index.csp || fail "http request failed"
 

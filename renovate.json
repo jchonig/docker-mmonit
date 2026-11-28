@@ -1,5 +1,35 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:base"],
-  "pinDigests": true
+  "extends": ["config:recommended"],
+  "pinDigests": true,
+  "customDatasources": {
+    "mmonit": {
+      "defaultRegistryUrlTemplate": "https://mmonit.com/dist/",
+      "format": "html"
+    }
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "M/Monit version, built from the mmonit.com tarball",
+      "managerFilePatterns": ["/^VERSION$/"],
+      "matchStrings": ["^(?<currentValue>\\d+\\.\\d+\\.\\d+)\\s*$"],
+      "depNameTemplate": "mmonit",
+      "datasourceTemplate": "custom.mmonit",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Report new M/Monit releases on the Dependency Dashboard only; they need upgrade testing",
+      "matchDatasources": ["custom.mmonit"],
+      "extractVersion": "^mmonit-(?<version>\\d+\\.\\d+\\.\\d+)-alpine-x64\\.tar\\.gz$",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "The shared workflows are tracked at @main on purpose",
+      "matchPackageNames": ["jchonig/workflows"],
+      "enabled": false
+    }
+  ]
 }

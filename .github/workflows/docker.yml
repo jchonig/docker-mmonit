@@ -7,8 +7,59 @@ on:
   schedule:
     - cron: '0 10 * * 0'
   workflow_dispatch:
+    inputs:
+      force:
+        description: Build and push even if no packages have updates
+        type: boolean
+        default: false
 
 jobs:
+  # Scheduled and manual runs only rebuild when the published image has
+  # Alpine package updates; every build gets a new digest, so pushing
+  # an unchanged image would only churn the tags. Base image changes
+  # arrive as Renovate PRs, which always build.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.apk.outputs.changed }}
+    steps:
+      - name: Check the published image for package updates
+        id: apk
+        env:
+          EVENT: ${{ github.event_name }}
+          FORCE: ${{ inputs.force }}
+          IMAGE: ghcr.io/jchonig/mmonit:latest
+        run: |
+          case "${EVENT}" in
+              schedule|workflow_dispatch)
+                  ;;
+              *)
+                  echo "changed=true" >> "${GITHUB_OUTPUT}"
+                  exit 0
+                  ;;
+          esac
+          if [ "${FORCE}" = "true" ]; then
+              echo "Forced build"
+              echo "changed=true" >> "${GITHUB_OUTPUT}"
+              exit 0
+          fi
+          # apk-tools 3 doesn't fetch indexes with --simulate, so update first
+          if ! output=$(docker run --rm --platform linux/amd64 --entrypoint /bin/sh "${IMAGE}" \
+                               -c 'apk update -q > /dev/null && apk version -l "<"'); then
+              echo "Unable to check ${IMAGE} for updates, building"
+              echo "changed=true" >> "${GITHUB_OUTPUT}"
+              exit 0
+          fi
+          updates=$(printf '%s\n' "${output}" | sed 1d)
+          if [ -n "${updates}" ]; then
+              echo "Package updates:"
+              echo "${updates}"
+              echo "changed=true" >> "${GITHUB_OUTPUT}"
+          else
+              echo "No package updates in ${IMAGE}, skipping the build"
+              echo "changed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
   get-version:
     runs-on: ubuntu-latest
     outputs:
@@ -19,10 +70,12 @@ jobs:
         id: mmonit
         run: |
           VERSION=$(cat VERSION)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
           echo "Building M/Monit version $VERSION"
 
   test:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -35,7 +88,8 @@ jobs:
         run: make test-backup-${{ matrix.database }}
 
   build:
-    needs: [get-version, test]
+    needs: [check, get-version, test]
+    if: needs.check.outputs.changed == 'true'
     uses: jchonig/workflows/.github/workflows/docker-build.yml@main
     with:
       image_name: mmonit

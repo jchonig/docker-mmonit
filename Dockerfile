@@ -1,4 +1,4 @@
-From lsiobase/alpine:3.24
+FROM lsiobase/alpine:3.24
 
 ARG mmonit_version
 ARG mmonit_os=alpine
@@ -28,6 +28,8 @@ COPY root /
 RUN \
 	echo "*** fix directory modes copied from the build context ***" && \
 	chmod go+rx /etc /etc/logrotate.d /etc/periodic /etc/s6-overlay && \
+	echo "*** upgrade base packages ***" && \
+        apk upgrade --no-cache && \
 	echo "*** install utilities needed ****" && \
         apk add --no-cache dpkg logrotate rsync trurl xmlstarlet && \
 	echo "*** install M/Monit ***" && \

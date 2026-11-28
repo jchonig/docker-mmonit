@@ -170,6 +170,25 @@ against SQLite, MariaDB and PostgreSQL in containers;
 started, so the tests don't need a license.  CI runs them for every
 push and pull request.
 
+## Updates and security
+
+* [Renovate](https://docs.renovatebot.com) opens pull requests for
+  new base images (the lsiobase image is pinned by digest, so each
+  rebuild of it is a pull request) and GitHub Actions versions.
+* New M/Monit releases appear on Renovate's Dependency Dashboard issue
+  instead of as pull requests, because they need upgrade testing.
+  Tick the release there to have Renovate open the pull request that
+  updates `VERSION`.
+* The weekly scheduled build only builds and pushes when the published
+  image has Alpine package updates; the image runs `apk upgrade` when
+  it is built.  Run the Build and Push workflow by hand with `force`
+  to push anyway.
+* A daily scan runs [Trivy](https://trivy.dev) on the published image,
+  with the database clients that are installed at startup added, and
+  reports fixable HIGH and CRITICAL vulnerabilities in the repository's
+  Security tab.  The scan fails while any are found; a rebuild fixes
+  them.
+
 ## Upgrading
 
 * The container will automatically run the M/Monit upgrade script if

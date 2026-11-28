@@ -65,7 +65,7 @@ jobs:
     outputs:
       version: ${{ steps.mmonit.outputs.version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Get M/Monit version
         id: mmonit
         run: |
@@ -82,7 +82,7 @@ jobs:
       matrix:
         database: [sqlite3, mysql, postgresql]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Test backups and restores with ${{ matrix.database }}
         run: make test-backup-${{ matrix.database }}

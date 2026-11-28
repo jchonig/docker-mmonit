@@ -1,4 +1,4 @@
-FROM lsiobase/alpine:3.24
+FROM lsiobase/alpine:3.24@sha256:9c6e3858551c37815ea3362494e1e316bf7f204e8303ff73c860fedbb291882a
 
 ARG mmonit_version
 ARG mmonit_os=alpine
